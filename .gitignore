@@ -1,0 +1,19 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.DS_Store
+.env
+*.egg-info/
+dist/
+build/
+data/artifacts/*.npz
+data/artifacts/*.pkl
+data/artifacts/*.json
+data/processed/*.jsonl
+
+# Historical local notebook contains environment-specific credentials. Keep the
+# local reference, but do not publish it until a sanitized copy is prepared.
+notebooks/pep_sa_rag_precalculus_notebook_local_fixed.ipynb

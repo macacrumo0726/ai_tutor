@@ -1,0 +1,12 @@
+method: rag
+use_dense: true
+use_sparse: true
+fusion: rrf
+chunk_type_weights:
+  definition: 1.20
+  explanation: 1.15
+  worked_example: 1.10
+  theorem: 1.05
+  formula: 1.05
+  summary: 1.00
+  exercise: 0.70

@@ -1,0 +1,16 @@
+experiment:
+  split: validation
+  top_k: 5
+  seed: 42
+  retrieval_methods: [rag, graph_rag, pep_sa_rag]
+  stages: [retrieval, ablations, robustness]
+  generation:
+    enabled: false
+    provider: gemini
+    model: gemini-3.6-flash
+    conditions: [raw, pedagogical_prompt, rag, graph_rag, pep_sa_rag]
+    pilot_limit: 30
+    delay_seconds: 1.0
+  reporting:
+    formats: [jsonl, csv, json, html]
+    update_presentation: true

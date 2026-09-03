@@ -1,0 +1,11 @@
+provider,generator_model,method,n,success_rate,avg_em,avg_f1,avg_latency,retrieval_hit,avg_num_docs
+gemini_api,gemini-3.1-flash-lite-preview,sa_rag,1,1.0,0.0,0.5176470588235293,8.489275217056274,,8.0
+gemini_api,gemini-3.1-flash-lite-preview,ppr,1,1.0,0.0,0.3652173913043478,6.343640089035034,,8.0
+gemini_api,gemini-3.1-flash-lite-preview,neighbor,1,1.0,0.0,0.352,19.29012393951416,,8.0
+gemini_api,gemini-2.5-flash,dense,3,1.0,0.0,0.32791262846602054,4.790262778600057,,8.0
+gemini_api,gemini-2.5-flash,dense_bm25,2,1.0,0.0,0.30128205128205127,4.571694850921631,,8.0
+gemini_api,gemini-2.5-flash,sa_rag,2,1.0,0.0,0.24166666666666664,4.006667613983154,,8.0
+gemini_api,gemini-2.5-flash,pep_sa_rag,3,1.0,0.0,0.2353187699722353,1153.3122216860454,,8.0
+gemini_api,gemini-2.5-flash,neighbor,2,1.0,0.0,0.23117457079721226,6.2677096128463745,,8.0
+gemini_api,gemini-2.5-flash,ppr,2,1.0,0.0,0.1918505942275042,6.395500540733337,,8.0
+gemini_api,gemini-3.1-flash-lite-preview,dense_bm25,1,0.0,0.0,0.0,1.5541765689849854,,8.0

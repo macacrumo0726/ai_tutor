@@ -1,0 +1,10 @@
+method: graph_rag
+use_neighbors: true
+use_prerequisites: true
+use_ppr: true
+max_hops: 2
+max_nodes: 80
+max_neighbors_per_node: 12
+ppr_alpha: 0.85
+graph_weight: 0.35
+

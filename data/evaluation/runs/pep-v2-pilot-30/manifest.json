@@ -1,0 +1,14 @@
+{
+  "created_at": "2026-08-19T23:57:03.230895+00:00",
+  "run_id": "pep-v2-pilot-30",
+  "split": "validation",
+  "question_count": 30,
+  "top_k": 5,
+  "stages": [
+    "retrieval"
+  ],
+  "git_commit": "uncommitted",
+  "seed": 42,
+  "dataset_version": "1.0.0-corpus-draft",
+  "model": "gemini-3.6-flash"
+}

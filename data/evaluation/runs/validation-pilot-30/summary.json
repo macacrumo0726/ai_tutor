@@ -1,0 +1,442 @@
+{
+  "created_at": "2026-08-19T23:35:16.285436+00:00",
+  "run_id": "validation-pilot-30",
+  "split": "validation",
+  "question_count": 30,
+  "top_k": 5,
+  "stages": [
+    "retrieval",
+    "ablations",
+    "robustness"
+  ],
+  "git_commit": "uncommitted",
+  "seed": 42,
+  "dataset_version": "1.0.0-corpus-draft",
+  "model": "gemini-3.6-flash",
+  "retrieval_summary": [
+    {
+      "method": "graph_rag",
+      "n": 30,
+      "hit_at_k": 0.466667,
+      "hit_at_k_ci95": [
+        0.3,
+        0.633333
+      ],
+      "recall_at_k": 0.227778,
+      "mrr": 0.337222,
+      "ndcg_at_k": 0.223418,
+      "concept_recall": 0.466667,
+      "concept_recall_ci95": [
+        0.3,
+        0.633333
+      ],
+      "prerequisite_recall": 0.0,
+      "prerequisite_recall_ci95": [
+        0.0,
+        0.0
+      ],
+      "latency_ms": 24.859053,
+      "latency_ms_ci95": [
+        13.520981,
+        43.938188
+      ],
+      "nodes_visited": 37.666667,
+      "edges_visited": 21.466667,
+      "iterations": 0.0
+    },
+    {
+      "method": "pep_sa_rag",
+      "n": 30,
+      "hit_at_k": 0.166667,
+      "hit_at_k_ci95": [
+        0.033333,
+        0.3
+      ],
+      "recall_at_k": 0.15,
+      "mrr": 0.117778,
+      "ndcg_at_k": 0.126928,
+      "concept_recall": 0.166667,
+      "concept_recall_ci95": [
+        0.033333,
+        0.3
+      ],
+      "prerequisite_recall": 0.444444,
+      "prerequisite_recall_ci95": [
+        0.259259,
+        0.62963
+      ],
+      "latency_ms": 17.463426,
+      "latency_ms_ci95": [
+        16.329125,
+        18.762957
+      ],
+      "nodes_visited": 448.0,
+      "edges_visited": 702.0,
+      "iterations": 12.0
+    },
+    {
+      "method": "rag",
+      "n": 30,
+      "hit_at_k": 0.2,
+      "hit_at_k_ci95": [
+        0.066667,
+        0.333333
+      ],
+      "recall_at_k": 0.1,
+      "mrr": 0.102778,
+      "ndcg_at_k": 0.077502,
+      "concept_recall": 0.2,
+      "concept_recall_ci95": [
+        0.066667,
+        0.333333
+      ],
+      "prerequisite_recall": 0.0,
+      "prerequisite_recall_ci95": [
+        0.0,
+        0.0
+      ],
+      "latency_ms": 11.395322,
+      "latency_ms_ci95": [
+        10.485303,
+        12.307876
+      ],
+      "nodes_visited": 0.0,
+      "edges_visited": 0.0,
+      "iterations": 0.0
+    }
+  ],
+  "ablation_summary": [
+    {
+      "method": "bm25_only",
+      "n": 30,
+      "hit_at_k": 0.1,
+      "hit_at_k_ci95": [
+        0.0,
+        0.233333
+      ],
+      "recall_at_k": 0.05,
+      "mrr": 0.077778,
+      "ndcg_at_k": 0.051096,
+      "concept_recall": 0.1,
+      "concept_recall_ci95": [
+        0.0,
+        0.233333
+      ],
+      "prerequisite_recall": 0.0,
+      "prerequisite_recall_ci95": [
+        0.0,
+        0.0
+      ],
+      "latency_ms": 10.081224,
+      "latency_ms_ci95": [
+        9.261557,
+        10.822507
+      ],
+      "nodes_visited": 0.0,
+      "edges_visited": 0.0,
+      "iterations": 0.0
+    },
+    {
+      "method": "dense_bm25_rrf",
+      "n": 30,
+      "hit_at_k": 0.2,
+      "hit_at_k_ci95": [
+        0.066667,
+        0.333333
+      ],
+      "recall_at_k": 0.1,
+      "mrr": 0.102778,
+      "ndcg_at_k": 0.077502,
+      "concept_recall": 0.2,
+      "concept_recall_ci95": [
+        0.066667,
+        0.333333
+      ],
+      "prerequisite_recall": 0.0,
+      "prerequisite_recall_ci95": [
+        0.0,
+        0.0
+      ],
+      "latency_ms": 10.868047,
+      "latency_ms_ci95": [
+        9.882603,
+        11.905269
+      ],
+      "nodes_visited": 0.0,
+      "edges_visited": 0.0,
+      "iterations": 0.0
+    },
+    {
+      "method": "dense_only",
+      "n": 30,
+      "hit_at_k": 0.066667,
+      "hit_at_k_ci95": [
+        0.0,
+        0.166667
+      ],
+      "recall_at_k": 0.033333,
+      "mrr": 0.041667,
+      "ndcg_at_k": 0.029241,
+      "concept_recall": 0.066667,
+      "concept_recall_ci95": [
+        0.0,
+        0.166667
+      ],
+      "prerequisite_recall": 0.0,
+      "prerequisite_recall_ci95": [
+        0.0,
+        0.0
+      ],
+      "latency_ms": 0.605339,
+      "latency_ms_ci95": [
+        0.547828,
+        0.685628
+      ],
+      "nodes_visited": 0.0,
+      "edges_visited": 0.0,
+      "iterations": 0.0
+    },
+    {
+      "method": "graph_neighbors",
+      "n": 30,
+      "hit_at_k": 0.333333,
+      "hit_at_k_ci95": [
+        0.166667,
+        0.5
+      ],
+      "recall_at_k": 0.161111,
+      "mrr": 0.223333,
+      "ndcg_at_k": 0.151252,
+      "concept_recall": 0.333333,
+      "concept_recall_ci95": [
+        0.166667,
+        0.5
+      ],
+      "prerequisite_recall": 0.0,
+      "prerequisite_recall_ci95": [
+        0.0,
+        0.0
+      ],
+      "latency_ms": 11.779844,
+      "latency_ms_ci95": [
+        10.736213,
+        13.143139
+      ],
+      "nodes_visited": 34.933333,
+      "edges_visited": 18.733333,
+      "iterations": 0.0
+    },
+    {
+      "method": "graph_ppr",
+      "n": 30,
+      "hit_at_k": 0.466667,
+      "hit_at_k_ci95": [
+        0.3,
+        0.633333
+      ],
+      "recall_at_k": 0.227778,
+      "mrr": 0.337222,
+      "ndcg_at_k": 0.223418,
+      "concept_recall": 0.466667,
+      "concept_recall_ci95": [
+        0.3,
+        0.633333
+      ],
+      "prerequisite_recall": 0.0,
+      "prerequisite_recall_ci95": [
+        0.0,
+        0.0
+      ],
+      "latency_ms": 13.259308,
+      "latency_ms_ci95": [
+        12.481633,
+        13.962297
+      ],
+      "nodes_visited": 37.666667,
+      "edges_visited": 21.466667,
+      "iterations": 0.0
+    },
+    {
+      "method": "graph_prerequisites",
+      "n": 30,
+      "hit_at_k": 0.333333,
+      "hit_at_k_ci95": [
+        0.166667,
+        0.5
+      ],
+      "recall_at_k": 0.161111,
+      "mrr": 0.223333,
+      "ndcg_at_k": 0.151252,
+      "concept_recall": 0.333333,
+      "concept_recall_ci95": [
+        0.166667,
+        0.5
+      ],
+      "prerequisite_recall": 0.0,
+      "prerequisite_recall_ci95": [
+        0.0,
+        0.0
+      ],
+      "latency_ms": 11.467494,
+      "latency_ms_ci95": [
+        10.589347,
+        12.414333
+      ],
+      "nodes_visited": 22.0,
+      "edges_visited": 5.8,
+      "iterations": 0.0
+    },
+    {
+      "method": "pep_sa_full",
+      "n": 30,
+      "hit_at_k": 0.166667,
+      "hit_at_k_ci95": [
+        0.033333,
+        0.3
+      ],
+      "recall_at_k": 0.15,
+      "mrr": 0.117778,
+      "ndcg_at_k": 0.126928,
+      "concept_recall": 0.166667,
+      "concept_recall_ci95": [
+        0.033333,
+        0.3
+      ],
+      "prerequisite_recall": 0.444444,
+      "prerequisite_recall_ci95": [
+        0.259259,
+        0.62963
+      ],
+      "latency_ms": 16.249035,
+      "latency_ms_ci95": [
+        15.410551,
+        16.998643
+      ],
+      "nodes_visited": 448.0,
+      "edges_visited": 702.0,
+      "iterations": 12.0
+    },
+    {
+      "method": "sa_uniform_weights",
+      "n": 30,
+      "hit_at_k": 0.166667,
+      "hit_at_k_ci95": [
+        0.066667,
+        0.333333
+      ],
+      "recall_at_k": 0.133333,
+      "mrr": 0.123333,
+      "ndcg_at_k": 0.120802,
+      "concept_recall": 0.166667,
+      "concept_recall_ci95": [
+        0.066667,
+        0.333333
+      ],
+      "prerequisite_recall": 0.518519,
+      "prerequisite_recall_ci95": [
+        0.333333,
+        0.703704
+      ],
+      "latency_ms": 16.319572,
+      "latency_ms_ci95": [
+        15.493653,
+        17.069958
+      ],
+      "nodes_visited": 448.0,
+      "edges_visited": 702.0,
+      "iterations": 12.0
+    }
+  ],
+  "robustness_summary": [
+    {
+      "method": "graph_rag",
+      "n": 90,
+      "hit_at_k": 0.455556,
+      "hit_at_k_ci95": [
+        0.355556,
+        0.555556
+      ],
+      "recall_at_k": 0.22963,
+      "mrr": 0.322778,
+      "ndcg_at_k": 0.218586,
+      "concept_recall": 0.455556,
+      "concept_recall_ci95": [
+        0.355556,
+        0.555556
+      ],
+      "prerequisite_recall": 0.0,
+      "prerequisite_recall_ci95": [
+        0.0,
+        0.0
+      ],
+      "latency_ms": 15.355923,
+      "latency_ms_ci95": [
+        14.806859,
+        15.893225
+      ],
+      "nodes_visited": 39.1,
+      "edges_visited": 21.977778,
+      "iterations": 0.0
+    },
+    {
+      "method": "pep_sa_rag",
+      "n": 90,
+      "hit_at_k": 0.177778,
+      "hit_at_k_ci95": [
+        0.1,
+        0.255556
+      ],
+      "recall_at_k": 0.161111,
+      "mrr": 0.138148,
+      "ndcg_at_k": 0.142337,
+      "concept_recall": 0.177778,
+      "concept_recall_ci95": [
+        0.1,
+        0.255556
+      ],
+      "prerequisite_recall": 0.444444,
+      "prerequisite_recall_ci95": [
+        0.333333,
+        0.54321
+      ],
+      "latency_ms": 18.262786,
+      "latency_ms_ci95": [
+        17.677915,
+        18.78483
+      ],
+      "nodes_visited": 448.0,
+      "edges_visited": 702.0,
+      "iterations": 12.0
+    },
+    {
+      "method": "rag",
+      "n": 90,
+      "hit_at_k": 0.222222,
+      "hit_at_k_ci95": [
+        0.133333,
+        0.311111
+      ],
+      "recall_at_k": 0.109259,
+      "mrr": 0.129074,
+      "ndcg_at_k": 0.092553,
+      "concept_recall": 0.222222,
+      "concept_recall_ci95": [
+        0.133333,
+        0.311111
+      ],
+      "prerequisite_recall": 0.0,
+      "prerequisite_recall_ci95": [
+        0.0,
+        0.0
+      ],
+      "latency_ms": 12.687429,
+      "latency_ms_ci95": [
+        12.127475,
+        13.221193
+      ],
+      "nodes_visited": 0.0,
+      "edges_visited": 0.0,
+      "iterations": 0.0
+    }
+  ]
+}

@@ -1,0 +1,862 @@
+{
+  "created_at": "2026-08-20T17:59:08.860529+00:00",
+  "run_id": "pep-plan-v3-validation-135",
+  "split": "validation",
+  "question_count": 135,
+  "top_k": 5,
+  "stages": [
+    "retrieval",
+    "ablations",
+    "robustness"
+  ],
+  "git_commit": "uncommitted",
+  "seed": 42,
+  "dataset_version": "1.0.0-corpus-draft",
+  "model": "gemini-3.6-flash",
+  "retrieval_summary": [
+    {
+      "method": "graph_rag",
+      "n": 135,
+      "hit_at_k": 0.585185,
+      "hit_at_k_ci95": [
+        0.503704,
+        0.674074
+      ],
+      "recall_at_k": 0.335802,
+      "mrr": 0.384321,
+      "ndcg_at_k": 0.303982,
+      "concept_recall": 0.607407,
+      "concept_recall_ci95": [
+        0.518519,
+        0.688889
+      ],
+      "prerequisite_recall": 0.742857,
+      "prerequisite_recall_ci95": [
+        0.657143,
+        0.828571
+      ],
+      "latency_ms": 17.099819,
+      "latency_ms_ci95": [
+        14.116036,
+        21.489354
+      ],
+      "nodes_visited": 35.348148,
+      "edges_visited": 20.007407,
+      "iterations": 0.0
+    },
+    {
+      "method": "pep_plan_rag_v3",
+      "n": 135,
+      "hit_at_k": 0.503704,
+      "hit_at_k_ci95": [
+        0.422222,
+        0.592593
+      ],
+      "recall_at_k": 0.306173,
+      "mrr": 0.35716,
+      "ndcg_at_k": 0.277022,
+      "concept_recall": 0.525926,
+      "concept_recall_ci95": [
+        0.444444,
+        0.614815
+      ],
+      "prerequisite_recall": 0.714286,
+      "prerequisite_recall_ci95": [
+        0.628571,
+        0.8
+      ],
+      "latency_ms": 59.646628,
+      "latency_ms_ci95": [
+        57.576968,
+        61.754397
+      ],
+      "nodes_visited": 12.244444,
+      "edges_visited": 17.348148,
+      "iterations": 6.985185
+    },
+    {
+      "method": "pep_sa_rag_v1",
+      "n": 135,
+      "hit_at_k": 0.422222,
+      "hit_at_k_ci95": [
+        0.333333,
+        0.511111
+      ],
+      "recall_at_k": 0.355556,
+      "mrr": 0.319753,
+      "ndcg_at_k": 0.322249,
+      "concept_recall": 0.422222,
+      "concept_recall_ci95": [
+        0.333333,
+        0.511111
+      ],
+      "prerequisite_recall": 0.695238,
+      "prerequisite_recall_ci95": [
+        0.6,
+        0.780952
+      ],
+      "latency_ms": 13.352582,
+      "latency_ms_ci95": [
+        12.834772,
+        13.873127
+      ],
+      "nodes_visited": 35.362963,
+      "edges_visited": 50.918519,
+      "iterations": 12.0
+    },
+    {
+      "method": "pep_sa_rag_v2",
+      "n": 135,
+      "hit_at_k": 0.451852,
+      "hit_at_k_ci95": [
+        0.37037,
+        0.540741
+      ],
+      "recall_at_k": 0.25679,
+      "mrr": 0.324444,
+      "ndcg_at_k": 0.243908,
+      "concept_recall": 0.459259,
+      "concept_recall_ci95": [
+        0.377778,
+        0.540741
+      ],
+      "prerequisite_recall": 0.72381,
+      "prerequisite_recall_ci95": [
+        0.638095,
+        0.809524
+      ],
+      "latency_ms": 13.328276,
+      "latency_ms_ci95": [
+        12.900567,
+        13.78143
+      ],
+      "nodes_visited": 35.362963,
+      "edges_visited": 50.918519,
+      "iterations": 11.014815
+    },
+    {
+      "method": "rag",
+      "n": 135,
+      "hit_at_k": 0.355556,
+      "hit_at_k_ci95": [
+        0.274074,
+        0.444444
+      ],
+      "recall_at_k": 0.188889,
+      "mrr": 0.22284,
+      "ndcg_at_k": 0.162602,
+      "concept_recall": 0.392593,
+      "concept_recall_ci95": [
+        0.311111,
+        0.474074
+      ],
+      "prerequisite_recall": 0.504762,
+      "prerequisite_recall_ci95": [
+        0.409524,
+        0.6
+      ],
+      "latency_ms": 11.46467,
+      "latency_ms_ci95": [
+        11.088363,
+        11.875528
+      ],
+      "nodes_visited": 0.0,
+      "edges_visited": 0.0,
+      "iterations": 0.0
+    }
+  ],
+  "ablation_summary": [
+    {
+      "method": "bm25_only",
+      "n": 135,
+      "hit_at_k": 0.385185,
+      "hit_at_k_ci95": [
+        0.303704,
+        0.466667
+      ],
+      "recall_at_k": 0.219753,
+      "mrr": 0.224568,
+      "ndcg_at_k": 0.180383,
+      "concept_recall": 0.42963,
+      "concept_recall_ci95": [
+        0.340741,
+        0.511111
+      ],
+      "prerequisite_recall": 0.495238,
+      "prerequisite_recall_ci95": [
+        0.409524,
+        0.580952
+      ],
+      "latency_ms": 10.456919,
+      "latency_ms_ci95": [
+        10.093331,
+        10.806645
+      ],
+      "nodes_visited": 0.0,
+      "edges_visited": 0.0,
+      "iterations": 0.0
+    },
+    {
+      "method": "dense_bm25_rrf",
+      "n": 135,
+      "hit_at_k": 0.355556,
+      "hit_at_k_ci95": [
+        0.274074,
+        0.444444
+      ],
+      "recall_at_k": 0.188889,
+      "mrr": 0.22284,
+      "ndcg_at_k": 0.162602,
+      "concept_recall": 0.392593,
+      "concept_recall_ci95": [
+        0.311111,
+        0.474074
+      ],
+      "prerequisite_recall": 0.504762,
+      "prerequisite_recall_ci95": [
+        0.409524,
+        0.6
+      ],
+      "latency_ms": 10.878486,
+      "latency_ms_ci95": [
+        10.543789,
+        11.215974
+      ],
+      "nodes_visited": 0.0,
+      "edges_visited": 0.0,
+      "iterations": 0.0
+    },
+    {
+      "method": "dense_only",
+      "n": 135,
+      "hit_at_k": 0.185185,
+      "hit_at_k_ci95": [
+        0.118519,
+        0.259259
+      ],
+      "recall_at_k": 0.083951,
+      "mrr": 0.114815,
+      "ndcg_at_k": 0.074344,
+      "concept_recall": 0.2,
+      "concept_recall_ci95": [
+        0.133333,
+        0.274074
+      ],
+      "prerequisite_recall": 0.285714,
+      "prerequisite_recall_ci95": [
+        0.2,
+        0.371429
+      ],
+      "latency_ms": 0.6764,
+      "latency_ms_ci95": [
+        0.639323,
+        0.731083
+      ],
+      "nodes_visited": 0.0,
+      "edges_visited": 0.0,
+      "iterations": 0.0
+    },
+    {
+      "method": "graph_neighbors",
+      "n": 135,
+      "hit_at_k": 0.4,
+      "hit_at_k_ci95": [
+        0.318519,
+        0.488889
+      ],
+      "recall_at_k": 0.224691,
+      "mrr": 0.27358,
+      "ndcg_at_k": 0.203229,
+      "concept_recall": 0.414815,
+      "concept_recall_ci95": [
+        0.333333,
+        0.503704
+      ],
+      "prerequisite_recall": 0.466667,
+      "prerequisite_recall_ci95": [
+        0.371429,
+        0.561905
+      ],
+      "latency_ms": 12.018886,
+      "latency_ms_ci95": [
+        11.634932,
+        12.415424
+      ],
+      "nodes_visited": 33.251852,
+      "edges_visited": 17.911111,
+      "iterations": 0.0
+    },
+    {
+      "method": "graph_ppr",
+      "n": 135,
+      "hit_at_k": 0.585185,
+      "hit_at_k_ci95": [
+        0.503704,
+        0.674074
+      ],
+      "recall_at_k": 0.335802,
+      "mrr": 0.384321,
+      "ndcg_at_k": 0.303982,
+      "concept_recall": 0.607407,
+      "concept_recall_ci95": [
+        0.518519,
+        0.688889
+      ],
+      "prerequisite_recall": 0.742857,
+      "prerequisite_recall_ci95": [
+        0.657143,
+        0.828571
+      ],
+      "latency_ms": 13.643261,
+      "latency_ms_ci95": [
+        13.247027,
+        14.031215
+      ],
+      "nodes_visited": 35.348148,
+      "edges_visited": 20.007407,
+      "iterations": 0.0
+    },
+    {
+      "method": "graph_prerequisites",
+      "n": 135,
+      "hit_at_k": 0.4,
+      "hit_at_k_ci95": [
+        0.318519,
+        0.488889
+      ],
+      "recall_at_k": 0.224691,
+      "mrr": 0.27358,
+      "ndcg_at_k": 0.203229,
+      "concept_recall": 0.414815,
+      "concept_recall_ci95": [
+        0.333333,
+        0.503704
+      ],
+      "prerequisite_recall": 0.685714,
+      "prerequisite_recall_ci95": [
+        0.6,
+        0.771429
+      ],
+      "latency_ms": 11.729601,
+      "latency_ms_ci95": [
+        11.381488,
+        12.081689
+      ],
+      "nodes_visited": 20.111111,
+      "edges_visited": 4.77037,
+      "iterations": 0.0
+    },
+    {
+      "method": "pep_plan_v3_full",
+      "n": 135,
+      "hit_at_k": 0.503704,
+      "hit_at_k_ci95": [
+        0.422222,
+        0.592593
+      ],
+      "recall_at_k": 0.306173,
+      "mrr": 0.35716,
+      "ndcg_at_k": 0.277022,
+      "concept_recall": 0.525926,
+      "concept_recall_ci95": [
+        0.444444,
+        0.614815
+      ],
+      "prerequisite_recall": 0.714286,
+      "prerequisite_recall_ci95": [
+        0.628571,
+        0.8
+      ],
+      "latency_ms": 57.289378,
+      "latency_ms_ci95": [
+        55.489791,
+        59.08288
+      ],
+      "nodes_visited": 12.244444,
+      "edges_visited": 17.348148,
+      "iterations": 6.985185
+    },
+    {
+      "method": "pep_plan_v3_no_activation",
+      "n": 135,
+      "hit_at_k": 0.503704,
+      "hit_at_k_ci95": [
+        0.414815,
+        0.592593
+      ],
+      "recall_at_k": 0.288889,
+      "mrr": 0.361605,
+      "ndcg_at_k": 0.268411,
+      "concept_recall": 0.533333,
+      "concept_recall_ci95": [
+        0.451852,
+        0.622222
+      ],
+      "prerequisite_recall": 0.714286,
+      "prerequisite_recall_ci95": [
+        0.628571,
+        0.8
+      ],
+      "latency_ms": 56.769805,
+      "latency_ms_ci95": [
+        54.966656,
+        58.45921
+      ],
+      "nodes_visited": 12.244444,
+      "edges_visited": 17.348148,
+      "iterations": 6.985185
+    },
+    {
+      "method": "pep_plan_v3_no_diversity",
+      "n": 135,
+      "hit_at_k": 0.518519,
+      "hit_at_k_ci95": [
+        0.437037,
+        0.607407
+      ],
+      "recall_at_k": 0.314815,
+      "mrr": 0.360123,
+      "ndcg_at_k": 0.282177,
+      "concept_recall": 0.533333,
+      "concept_recall_ci95": [
+        0.451852,
+        0.622222
+      ],
+      "prerequisite_recall": 0.714286,
+      "prerequisite_recall_ci95": [
+        0.628571,
+        0.8
+      ],
+      "latency_ms": 63.16589,
+      "latency_ms_ci95": [
+        57.113942,
+        73.507613
+      ],
+      "nodes_visited": 12.244444,
+      "edges_visited": 17.348148,
+      "iterations": 6.985185
+    },
+    {
+      "method": "pep_plan_v3_no_prerequisite_utility",
+      "n": 135,
+      "hit_at_k": 0.511111,
+      "hit_at_k_ci95": [
+        0.422222,
+        0.6
+      ],
+      "recall_at_k": 0.297531,
+      "mrr": 0.361852,
+      "ndcg_at_k": 0.27522,
+      "concept_recall": 0.525926,
+      "concept_recall_ci95": [
+        0.444444,
+        0.614815
+      ],
+      "prerequisite_recall": 0.714286,
+      "prerequisite_recall_ci95": [
+        0.628571,
+        0.8
+      ],
+      "latency_ms": 57.080431,
+      "latency_ms_ci95": [
+        55.267121,
+        58.729525
+      ],
+      "nodes_visited": 12.244444,
+      "edges_visited": 17.348148,
+      "iterations": 6.985185
+    },
+    {
+      "method": "pep_plan_v3_no_student_gap",
+      "n": 135,
+      "hit_at_k": 0.503704,
+      "hit_at_k_ci95": [
+        0.422222,
+        0.592593
+      ],
+      "recall_at_k": 0.306173,
+      "mrr": 0.35716,
+      "ndcg_at_k": 0.277022,
+      "concept_recall": 0.525926,
+      "concept_recall_ci95": [
+        0.444444,
+        0.614815
+      ],
+      "prerequisite_recall": 0.714286,
+      "prerequisite_recall_ci95": [
+        0.628571,
+        0.8
+      ],
+      "latency_ms": 56.966802,
+      "latency_ms_ci95": [
+        55.150902,
+        58.805841
+      ],
+      "nodes_visited": 12.244444,
+      "edges_visited": 17.348148,
+      "iterations": 6.985185
+    },
+    {
+      "method": "pep_sa_v1",
+      "n": 135,
+      "hit_at_k": 0.422222,
+      "hit_at_k_ci95": [
+        0.333333,
+        0.511111
+      ],
+      "recall_at_k": 0.355556,
+      "mrr": 0.319753,
+      "ndcg_at_k": 0.322249,
+      "concept_recall": 0.422222,
+      "concept_recall_ci95": [
+        0.333333,
+        0.511111
+      ],
+      "prerequisite_recall": 0.695238,
+      "prerequisite_recall_ci95": [
+        0.6,
+        0.780952
+      ],
+      "latency_ms": 12.608772,
+      "latency_ms_ci95": [
+        12.197084,
+        13.048332
+      ],
+      "nodes_visited": 35.362963,
+      "edges_visited": 50.918519,
+      "iterations": 12.0
+    },
+    {
+      "method": "pep_sa_v2_direct4_uniform",
+      "n": 135,
+      "hit_at_k": 0.474074,
+      "hit_at_k_ci95": [
+        0.392593,
+        0.562963
+      ],
+      "recall_at_k": 0.275309,
+      "mrr": 0.325309,
+      "ndcg_at_k": 0.252026,
+      "concept_recall": 0.496296,
+      "concept_recall_ci95": [
+        0.414815,
+        0.577778
+      ],
+      "prerequisite_recall": 0.752381,
+      "prerequisite_recall_ci95": [
+        0.666667,
+        0.838095
+      ],
+      "latency_ms": 12.368215,
+      "latency_ms_ci95": [
+        11.996631,
+        12.733648
+      ],
+      "nodes_visited": 35.362963,
+      "edges_visited": 50.918519,
+      "iterations": 11.733333
+    },
+    {
+      "method": "pep_sa_v2_full",
+      "n": 135,
+      "hit_at_k": 0.451852,
+      "hit_at_k_ci95": [
+        0.37037,
+        0.540741
+      ],
+      "recall_at_k": 0.25679,
+      "mrr": 0.324444,
+      "ndcg_at_k": 0.243908,
+      "concept_recall": 0.459259,
+      "concept_recall_ci95": [
+        0.377778,
+        0.540741
+      ],
+      "prerequisite_recall": 0.72381,
+      "prerequisite_recall_ci95": [
+        0.638095,
+        0.809524
+      ],
+      "latency_ms": 12.429144,
+      "latency_ms_ci95": [
+        12.079429,
+        12.768893
+      ],
+      "nodes_visited": 35.362963,
+      "edges_visited": 50.918519,
+      "iterations": 11.014815
+    },
+    {
+      "method": "pep_sa_v2_no_quotas",
+      "n": 135,
+      "hit_at_k": 0.488889,
+      "hit_at_k_ci95": [
+        0.407407,
+        0.57037
+      ],
+      "recall_at_k": 0.282716,
+      "mrr": 0.331481,
+      "ndcg_at_k": 0.256529,
+      "concept_recall": 0.496296,
+      "concept_recall_ci95": [
+        0.414815,
+        0.585185
+      ],
+      "prerequisite_recall": 0.72381,
+      "prerequisite_recall_ci95": [
+        0.638095,
+        0.809524
+      ],
+      "latency_ms": 12.8143,
+      "latency_ms_ci95": [
+        12.29994,
+        13.458015
+      ],
+      "nodes_visited": 35.362963,
+      "edges_visited": 50.918519,
+      "iterations": 11.014815
+    },
+    {
+      "method": "pep_sa_v2_no_restart",
+      "n": 135,
+      "hit_at_k": 0.444444,
+      "hit_at_k_ci95": [
+        0.362963,
+        0.533333
+      ],
+      "recall_at_k": 0.254321,
+      "mrr": 0.322222,
+      "ndcg_at_k": 0.243095,
+      "concept_recall": 0.459259,
+      "concept_recall_ci95": [
+        0.377778,
+        0.540741
+      ],
+      "prerequisite_recall": 0.72381,
+      "prerequisite_recall_ci95": [
+        0.638095,
+        0.809524
+      ],
+      "latency_ms": 12.716933,
+      "latency_ms_ci95": [
+        12.24565,
+        13.248212
+      ],
+      "nodes_visited": 35.362963,
+      "edges_visited": 50.918519,
+      "iterations": 10.244444
+    },
+    {
+      "method": "pep_sa_v2_noquotas_uniform",
+      "n": 135,
+      "hit_at_k": 0.474074,
+      "hit_at_k_ci95": [
+        0.392593,
+        0.562963
+      ],
+      "recall_at_k": 0.275309,
+      "mrr": 0.325309,
+      "ndcg_at_k": 0.252026,
+      "concept_recall": 0.488889,
+      "concept_recall_ci95": [
+        0.407407,
+        0.577778
+      ],
+      "prerequisite_recall": 0.752381,
+      "prerequisite_recall_ci95": [
+        0.666667,
+        0.838095
+      ],
+      "latency_ms": 12.32334,
+      "latency_ms_ci95": [
+        11.975973,
+        12.679838
+      ],
+      "nodes_visited": 35.362963,
+      "edges_visited": 50.918519,
+      "iterations": 11.733333
+    },
+    {
+      "method": "pep_sa_v2_uniform_weights",
+      "n": 135,
+      "hit_at_k": 0.481481,
+      "hit_at_k_ci95": [
+        0.4,
+        0.57037
+      ],
+      "recall_at_k": 0.27037,
+      "mrr": 0.32716,
+      "ndcg_at_k": 0.249536,
+      "concept_recall": 0.503704,
+      "concept_recall_ci95": [
+        0.422222,
+        0.592593
+      ],
+      "prerequisite_recall": 0.752381,
+      "prerequisite_recall_ci95": [
+        0.666667,
+        0.838095
+      ],
+      "latency_ms": 12.560327,
+      "latency_ms_ci95": [
+        12.124819,
+        13.039769
+      ],
+      "nodes_visited": 35.362963,
+      "edges_visited": 50.918519,
+      "iterations": 11.733333
+    }
+  ],
+  "robustness_summary": [
+    {
+      "method": "graph_rag",
+      "n": 405,
+      "hit_at_k": 0.558025,
+      "hit_at_k_ci95": [
+        0.508642,
+        0.604938
+      ],
+      "recall_at_k": 0.312346,
+      "mrr": 0.366626,
+      "ndcg_at_k": 0.284489,
+      "concept_recall": 0.582716,
+      "concept_recall_ci95": [
+        0.535802,
+        0.62963
+      ],
+      "prerequisite_recall": 0.72381,
+      "prerequisite_recall_ci95": [
+        0.673016,
+        0.774603
+      ],
+      "latency_ms": 15.535552,
+      "latency_ms_ci95": [
+        15.227611,
+        15.854802
+      ],
+      "nodes_visited": 37.098765,
+      "edges_visited": 20.730864,
+      "iterations": 0.0
+    },
+    {
+      "method": "pep_plan_rag_v3",
+      "n": 405,
+      "hit_at_k": 0.488889,
+      "hit_at_k_ci95": [
+        0.439506,
+        0.540741
+      ],
+      "recall_at_k": 0.296708,
+      "mrr": 0.359794,
+      "ndcg_at_k": 0.276584,
+      "concept_recall": 0.51358,
+      "concept_recall_ci95": [
+        0.466667,
+        0.565432
+      ],
+      "prerequisite_recall": 0.68254,
+      "prerequisite_recall_ci95": [
+        0.631746,
+        0.733333
+      ],
+      "latency_ms": 59.896955,
+      "latency_ms_ci95": [
+        58.778945,
+        60.995178
+      ],
+      "nodes_visited": 12.108642,
+      "edges_visited": 17.31358,
+      "iterations": 7.158025
+    },
+    {
+      "method": "pep_sa_rag_v1",
+      "n": 405,
+      "hit_at_k": 0.397531,
+      "hit_at_k_ci95": [
+        0.350617,
+        0.444444
+      ],
+      "recall_at_k": 0.346914,
+      "mrr": 0.318601,
+      "ndcg_at_k": 0.319579,
+      "concept_recall": 0.397531,
+      "concept_recall_ci95": [
+        0.350617,
+        0.444444
+      ],
+      "prerequisite_recall": 0.692063,
+      "prerequisite_recall_ci95": [
+        0.64127,
+        0.746032
+      ],
+      "latency_ms": 14.444072,
+      "latency_ms_ci95": [
+        14.151542,
+        14.744525
+      ],
+      "nodes_visited": 37.11358,
+      "edges_visited": 53.920988,
+      "iterations": 12.0
+    },
+    {
+      "method": "pep_sa_rag_v2",
+      "n": 405,
+      "hit_at_k": 0.42716,
+      "hit_at_k_ci95": [
+        0.377778,
+        0.474074
+      ],
+      "recall_at_k": 0.24856,
+      "mrr": 0.321193,
+      "ndcg_at_k": 0.241222,
+      "concept_recall": 0.444444,
+      "concept_recall_ci95": [
+        0.392593,
+        0.491358
+      ],
+      "prerequisite_recall": 0.72381,
+      "prerequisite_recall_ci95": [
+        0.673016,
+        0.771429
+      ],
+      "latency_ms": 14.844839,
+      "latency_ms_ci95": [
+        14.284891,
+        15.710915
+      ],
+      "nodes_visited": 37.11358,
+      "edges_visited": 53.920988,
+      "iterations": 11.177778
+    },
+    {
+      "method": "rag",
+      "n": 405,
+      "hit_at_k": 0.37037,
+      "hit_at_k_ci95": [
+        0.320988,
+        0.412346
+      ],
+      "recall_at_k": 0.197119,
+      "mrr": 0.235432,
+      "ndcg_at_k": 0.172574,
+      "concept_recall": 0.397531,
+      "concept_recall_ci95": [
+        0.348148,
+        0.439506
+      ],
+      "prerequisite_recall": 0.479365,
+      "prerequisite_recall_ci95": [
+        0.425397,
+        0.533333
+      ],
+      "latency_ms": 12.872897,
+      "latency_ms_ci95": [
+        12.579251,
+        13.162279
+      ],
+      "nodes_visited": 0.0,
+      "edges_visited": 0.0,
+      "iterations": 0.0
+    }
+  ]
+}

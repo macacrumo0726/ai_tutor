@@ -1,0 +1,26 @@
+# Query-anchored, direction-aware and instructionally composed implementation.
+method: pep_sa_rag
+pep_version: v2
+max_hops: 2
+max_nodes: 80
+max_neighbors_per_node: 12
+activation_decay: 0.02
+retention: 0.35
+propagation_rate: 0.65
+prerequisite_weight: 1.25
+related_weight: 0.45
+forward_successor_weight: 0.05
+query_restart: 0.20
+activation_threshold: 0.001
+max_iterations: 12
+top_population: 20
+early_stopping_tolerance: 0.0001
+ranking_stability_patience: 2
+direct_relevance_weight: 0.60
+activation_rerank_weight: 0.20
+prerequisite_utility_weight: 0.10
+instructional_value_weight: 0.10
+direct_evidence_quota: 3
+prerequisite_evidence_quota: 1
+instructional_evidence_quota: 1
+adaptive_context_quotas: true

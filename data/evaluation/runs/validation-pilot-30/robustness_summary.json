@@ -1,0 +1,92 @@
+[
+  {
+    "method": "graph_rag",
+    "n": 90,
+    "hit_at_k": 0.455556,
+    "hit_at_k_ci95": [
+      0.355556,
+      0.555556
+    ],
+    "recall_at_k": 0.22963,
+    "mrr": 0.322778,
+    "ndcg_at_k": 0.218586,
+    "concept_recall": 0.455556,
+    "concept_recall_ci95": [
+      0.355556,
+      0.555556
+    ],
+    "prerequisite_recall": 0.0,
+    "prerequisite_recall_ci95": [
+      0.0,
+      0.0
+    ],
+    "latency_ms": 15.355923,
+    "latency_ms_ci95": [
+      14.806859,
+      15.893225
+    ],
+    "nodes_visited": 39.1,
+    "edges_visited": 21.977778,
+    "iterations": 0.0
+  },
+  {
+    "method": "pep_sa_rag",
+    "n": 90,
+    "hit_at_k": 0.177778,
+    "hit_at_k_ci95": [
+      0.1,
+      0.255556
+    ],
+    "recall_at_k": 0.161111,
+    "mrr": 0.138148,
+    "ndcg_at_k": 0.142337,
+    "concept_recall": 0.177778,
+    "concept_recall_ci95": [
+      0.1,
+      0.255556
+    ],
+    "prerequisite_recall": 0.444444,
+    "prerequisite_recall_ci95": [
+      0.333333,
+      0.54321
+    ],
+    "latency_ms": 18.262786,
+    "latency_ms_ci95": [
+      17.677915,
+      18.78483
+    ],
+    "nodes_visited": 448.0,
+    "edges_visited": 702.0,
+    "iterations": 12.0
+  },
+  {
+    "method": "rag",
+    "n": 90,
+    "hit_at_k": 0.222222,
+    "hit_at_k_ci95": [
+      0.133333,
+      0.311111
+    ],
+    "recall_at_k": 0.109259,
+    "mrr": 0.129074,
+    "ndcg_at_k": 0.092553,
+    "concept_recall": 0.222222,
+    "concept_recall_ci95": [
+      0.133333,
+      0.311111
+    ],
+    "prerequisite_recall": 0.0,
+    "prerequisite_recall_ci95": [
+      0.0,
+      0.0
+    ],
+    "latency_ms": 12.687429,
+    "latency_ms_ci95": [
+      12.127475,
+      13.221193
+    ],
+    "nodes_visited": 0.0,
+    "edges_visited": 0.0,
+    "iterations": 0.0
+  }
+]

@@ -1,0 +1,29 @@
+experiment:
+  experiment_id: gemini-pilot-v1
+  model_family: gemini
+  provider: gemini
+  model: gemini-3.6-flash
+  adaptation: original
+  conditions:
+    - raw
+    - pedagogical_prompt
+    - rag
+    - graph_rag
+    - pep_sa_rag
+  top_k: 5
+  temperature: 0.0
+  seed: 42
+  pilot_questions: 30
+  repetitions: 1
+  primary_outcomes:
+    - answer_correctness
+    - pedagogical_quality
+    - concept_recall
+    - prerequisite_recall
+    - latency_ms
+  controls:
+    same_model: true
+    same_questions: true
+    same_tutor_prompt_for_retrieval_conditions: true
+    same_top_k: true
+    held_out_test_split: true

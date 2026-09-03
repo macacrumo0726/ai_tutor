@@ -1,0 +1,19 @@
+# Historical bounded implementation, frozen for reproducible comparison.
+method: pep_sa_rag
+pep_version: v1
+max_hops: 2
+max_nodes: 80
+max_neighbors_per_node: 12
+activation_decay: 0.02
+retention: 0.35
+propagation_rate: 0.65
+prerequisite_weight: 1.25
+related_weight: 0.45
+forward_successor_weight: 0.0
+query_restart: 0.0
+activation_threshold: 0.001
+max_iterations: 12
+top_population: 20
+early_stopping_tolerance: 0.0001
+ranking_stability_patience: 0
+graph_weight: 0.40

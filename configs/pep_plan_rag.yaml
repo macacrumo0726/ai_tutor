@@ -1,0 +1,40 @@
+method: pep_plan_rag
+pep_version: v3
+max_hops: 2
+max_nodes: 80
+max_neighbors_per_node: 12
+use_neighbors: true
+use_prerequisites: true
+use_ppr: true
+ppr_alpha: 0.85
+graph_weight: 0.35
+activation_decay: 0.02
+retention: 0.35
+propagation_rate: 0.65
+prerequisite_weight: 1.25
+related_weight: 0.45
+forward_successor_weight: 0.05
+query_restart: 0.20
+activation_threshold: 0.001
+max_iterations: 12
+top_population: 20
+early_stopping_tolerance: 0.0001
+ranking_stability_patience: 2
+candidate_pool_multiplier: 3
+max_target_concepts: 5
+planning_max_depth: 3
+planning_max_nodes: 24
+mastery_threshold: 0.65
+redundancy_weight: 0.12
+min_direct_evidence: 2
+min_prerequisite_evidence: 1
+min_instructional_evidence: 1
+utility_weights:
+  direct: 0.35
+  ppr: 0.15
+  target: 0.10
+  prerequisite_need: 0.15
+  student_gap: 0.08
+  misconception: 0.04
+  instructional: 0.05
+  activation: 0.08

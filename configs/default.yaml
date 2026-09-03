@@ -1,0 +1,36 @@
+project:
+  seed: 42
+  dataset_version: "1.0.0-corpus-draft"
+paths:
+  legacy_chunks: doctorado/libro/output/pep_sa_rag_project/processed/rag_chunks.parquet
+  legacy_pages: doctorado/libro/output/pep_sa_rag_project/processed/book_pages_structured.parquet
+  chunks: data/processed/chunks.jsonl
+  concepts: data/instructional/concepts.jsonl
+  instructional_units: data/instructional/instructional_units.jsonl
+  relations: data/instructional/relations.jsonl
+  questions: data/evaluation/questions.jsonl
+  graph: data/artifacts/pedagogical_graph.pkl
+  indexes: data/artifacts/retrieval_indexes.pkl
+embedding:
+  backend: hashing
+  model: hashing-vectorizer-v1
+  dimensions: 768
+retrieval:
+  top_k: 5
+  rrf_k: 60
+  dense_weight: 1.0
+  sparse_weight: 1.0
+generation:
+  provider: gemini
+  model: gemini-3.6-flash
+  temperature: 0.0
+  default_models:
+    openai: gpt-4.1-mini
+    gemini: gemini-3.6-flash
+    deepseek: deepseek-chat
+    local_base: qwen3:8b
+    local_finetuned: precalculus-tutor-qwen3:8b
+    local_deepseek_base: deepseek-r1:7b
+    local_deepseek_finetuned: precalculus-tutor-deepseek-r1:7b
+    openai_finetuned: ""
+  local_openai_base_url: http://127.0.0.1:11434/v1
