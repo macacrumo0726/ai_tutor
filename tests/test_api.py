@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 
 from ai_tutor.api.app import create_app
-from ai_tutor.api.services import TutorApplicationService
+from ai_tutor.api.services import TutorApplicationService, _social_intent, _student_text
 from ai_tutor.memory import ConversationRepository
 
 
@@ -73,3 +73,34 @@ def test_research_routes_require_researcher(tmp_path, monkeypatch):
     research_headers = {"Authorization": f"Bearer {researcher['token']}"}
     assert client.get("/api/admin/overview", headers=student_headers).status_code == 403
     assert client.get("/api/admin/overview", headers=research_headers).status_code == 200
+
+
+def test_social_messages_bypass_retrieval_but_remain_in_memory(tmp_path):
+    repository = ConversationRepository(tmp_path / "social.sqlite3")
+    service = TutorApplicationService(repository=repository)
+    identity = service.auth.register("student", "Camila", "1234")
+    conversation = service.memory.create("student", title="Nueva conversación")
+
+    result = service.ask(identity, conversation.conversation_id, "hola")
+
+    assert result["answer"].startswith("¡Hola, Camila!")
+    assert result["metadata"]["intent"] == "greeting"
+    assert result["metadata"]["retrieval_method"] == "none"
+    assert result["metadata"]["chunks"] == []
+    messages = repository.list_messages("student", conversation.conversation_id)
+    assert [(item.role, item.content) for item in messages] == [
+        ("user", "hola"),
+        ("assistant", result["answer"]),
+    ]
+
+
+def test_social_intent_does_not_capture_mathematical_messages():
+    assert _social_intent("buenas tardes") == "greeting"
+    assert _social_intent("gracias") == "thanks"
+    assert _social_intent("Hola, ¿cómo factorizo x² - 5x + 6?") is None
+
+
+def test_student_text_removes_model_formatting_delimiters():
+    assert _student_text("Si `x = 2`, entonces $x$ no pertenece al dominio.") == (
+        "Si x = 2, entonces x no pertenece al dominio."
+    )

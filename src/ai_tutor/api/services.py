@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import re
+import time
 from dataclasses import asdict
 from threading import Lock
 from typing import Optional
@@ -22,7 +23,24 @@ def _student_text(text: str) -> str:
     text = re.sub(r"\\\((.*?)\\\)", r"\1", text, flags=re.DOTALL)
     text = re.sub(r"\\\[(.*?)\\\]", r"\1", text, flags=re.DOTALL)
     text = re.sub(r"(?<!\\)\$([^$\n]+)\$", r"\1", text)
-    return text.replace(r"\$", "$").strip()
+    return text.replace(r"\$", "$").replace("`", "").strip()
+
+
+SOCIAL_PATTERNS = {
+    "greeting": re.compile(
+        r"^\s*(?:¡?hola!?|buen(?:os|as)\s+(?:días|dias|tardes|noches)|hey|hi|qué tal|que tal)\s*[.!?]*\s*$",
+        re.IGNORECASE,
+    ),
+    "thanks": re.compile(r"^\s*(?:gracias|muchas gracias|entendido|perfecto)\s*[.!?]*\s*$", re.IGNORECASE),
+    "goodbye": re.compile(r"^\s*(?:adiós|adios|chao|hasta luego|nos vemos)\s*[.!?]*\s*$", re.IGNORECASE),
+}
+
+
+def _social_intent(message: str) -> Optional[str]:
+    for intent, pattern in SOCIAL_PATTERNS.items():
+        if pattern.fullmatch(message):
+            return intent
+    return None
 
 
 class TutorApplicationService:
@@ -64,11 +82,39 @@ class TutorApplicationService:
     def ask(self, identity: dict, conversation_id: str, message: str):
         user_id = identity["user_id"]
         prepared = self.memory.prepare(user_id, conversation_id, message)
+        social_intent = _social_intent(message)
+        if social_intent:
+            started = time.perf_counter()
+            first_name = identity.get("display_name", "").strip().split(" ")[0] or "estudiante"
+            answers = {
+                "greeting": f"¡Hola, {first_name}! Soy PATI. ¿Qué tema o ejercicio de Precálculo quieres trabajar hoy?",
+                "thanks": "¡Con gusto! Antes de seguir, ¿sientes que la idea quedó clara o quieres comprobarla con un ejemplo corto?",
+                "goodbye": "¡Hasta luego! Cuando regreses podemos continuar desde esta misma conversación.",
+            }
+            metadata = {
+                "intent": social_intent,
+                "retrieval_method": "none",
+                "model_provider": "conversation_router",
+                "student_profile": f"persistent:{user_id}",
+                "retrieval_query": message,
+                "chunks": [],
+                "concepts": [],
+                "latency_ms": round((time.perf_counter() - started) * 1000, 2),
+                "effective_model": "deterministic-social-router-v1",
+                "fallback_used": False,
+                "requested_provider": self.default_provider,
+            }
+            answer = answers[social_intent]
+            self.memory.record_turn(user_id, conversation_id, message, answer, metadata)
+            return {"answer": answer, "metadata": metadata}
+
         profile = self.learning.state_for(user_id)
         provider = self.default_provider
         retrieval_method = self.default_retrieval
         response = None
         requested_error = ""
+        primary_provider_error = ""
+        model_fallback_used = False
         effective_provider = provider
         try:
             response = self.tutor(provider).ask(
@@ -80,6 +126,8 @@ class TutorApplicationService:
                 retrieval_query=prepared["retrieval_query"],
             )
             requested_error = response.generation_error
+            primary_provider_error = response.primary_generation_error
+            model_fallback_used = response.model_fallback_used
         except Exception as exc:  # provider initialization/network error
             requested_error = str(exc)
 
@@ -106,8 +154,9 @@ class TutorApplicationService:
             "concepts": concepts,
             "latency_ms": round(response.total_latency_ms, 2),
             "effective_model": response.generation_model,
-            "fallback_used": effective_provider != provider,
+            "fallback_used": effective_provider != provider or model_fallback_used,
             "requested_provider": provider,
+            "requested_provider_error": requested_error or primary_provider_error,
         }
         answer = _student_text(response.answer)
         prior_messages = prepared["messages"]

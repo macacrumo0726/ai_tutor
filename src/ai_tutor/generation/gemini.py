@@ -3,7 +3,7 @@ from time import perf_counter
 from .base import GenerationResult
 class GeminiGenerator:
     def __init__(self,model="gemini-3.6-flash",timeout_ms=30000,
-                 fallback_model="gemini-2.5-flash-lite"):
+                 fallback_model="gemini-3.5-flash-lite"):
         self.model=model
         self.fallback_model=fallback_model
         self.timeout_ms=int(timeout_ms)

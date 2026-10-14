@@ -26,7 +26,7 @@ generation:
   model: gemini-3.6-flash
   temperature: 0.0
   request_timeout_ms: 30000
-  gemini_fallback_model: gemini-2.5-flash-lite
+  gemini_fallback_model: gemini-3.5-flash-lite
   default_models:
     openai: gpt-4.1-mini
     gemini: gemini-3.6-flash
