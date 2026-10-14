@@ -4,9 +4,27 @@
 > Debe actualizarse cuando cambien el código, los datos, el grafo, las pruebas o
 > los resultados experimentales.
 
-**Última actualización:** 2026-08-20  
+**Última actualización:** 2026-09-17
 **Versión del dataset:** 1.0.0-corpus-draft  
 **Estado general:** base corpus-wide completa estructuralmente; contenido generado e inferido pendiente de validación experta.
+
+## Avance 2026-09-17 — disponibilidad y comprensión
+
+- Restaurado el selector visible de modelo en el chat.
+- Añadido respaldo local explícito ante fallos temporales como Gemini 503. La
+  traza registra proveedor solicitado, proveedor efectivo y error; las
+  comparaciones experimentales desactivan el respaldo para no mezclar modelos.
+- Los botones dejaron de modificar el dominio: ahora son auto-reportes guardados
+  en `student_self_reports`.
+- Incorporado un evaluador determinista de respuestas libres que observa
+  confusión, incertidumbre, explicación causal, longitud y vocabulario
+  conceptual. Registra score, confianza y rasgos en
+  `understanding_evaluations`.
+- Añadido contraste `agreement`/`contradiction` entre evaluación y auto-reporte.
+  Una respuesta no calificable se conserva como `evaluator_unscored`.
+- La evidencia heurística sólo cambia el dominio con confianza suficiente y un
+  peso conservador. Debe validarse posteriormente contra evaluación humana.
+- Validación: 53 tests pasan.
 
 ## 1. Alcance desarrollado
 
@@ -164,6 +182,100 @@ En cada cambio relevante se actualizarán:
 - registro de cambios siguiente.
 
 ## 9. Registro de cambios
+
+### 2026-09-17 — Ciclo pedagógico evaluable e interfaz estudiantil
+
+- Creado `ai_tutor.assessment` con esquema de micro-check, validadores numéricos
+  seguros y por rúbrica, banco inicial, política pedagógica y servicio común.
+- Añadidas tablas `micro_checks` y `assessment_attempts`. Cada intento conserva
+  respuesta, resultado, número de intento, acción seleccionada y dominio antes
+  y después; el esquema persistente pasa de 8 a 10 tablas.
+- Implementada la política `advance`, `consolidate`, `hint`,
+  `remediate_prerequisite` y `worked_example`, con tres niveles progresivos de
+  pista y actualización del perfil mediante evidencia calificada.
+- Añadida la pestaña **Práctica guiada** al frontend y reordenada la UI para el
+  estudiante: cabecera visual, configuración experimental plegada, valores por
+  defecto Gemini + base instruccional + PEP-Plan v3 y acción principal visible.
+- Registrados Qwen3-4B y Phi-4-mini como modelos locales open-source vía
+  Ollama/vLLM/LM Studio; añadido `scripts/manage_local_models.py` para comprobar
+  o descargar explícitamente los pesos. Ollama no está instalado en el equipo,
+  por lo que no se descargaron modelos.
+- Suite ampliada a **49 tests aprobados** y construcción completa de Gradio
+  validada.
+
+### 2026-09-03 — Autenticación y perfil longitudinal conectado a PEP-Plan v3
+
+- Añadido registro e inicio de sesión local con ID seudónimo, PIN protegido con
+  PBKDF2-HMAC-SHA256 y sal aleatoria, sesiones revocables y roles `student` y
+  `researcher`. Las cuentas investigadoras deben estar preautorizadas mediante
+  `AI_TUTOR_RESEARCHER_IDS`; el usuario no puede asignarse ese rol.
+- Extendida SQLite con `student_profiles`, `learning_evidence`,
+  `student_misconceptions` y `learning_events`, conservando y migrando las
+  conversaciones existentes sin borrarlas.
+- Convertida `concept_mastery` en un estado longitudinal continuo por concepto,
+  con dominio, confianza, número de evidencias y fecha de actualización.
+- Implementada la regla auditable `m_new = m_old + alpha(outcome-m_old)`, donde
+  `alpha` disminuye al acumular evidencia. Sólo los botones explícitos del
+  estudiante actualizan dominio; una pregunta o respuesta libre no basta.
+- PEP-Plan-RAG v3 recibe el `StudentState` persistente antes de construir la ruta
+  de aprendizaje. El dominio modifica la detección de prerrequisitos faltantes y
+  el término `student_gap` del reranking. RAG, Graph-RAG y PEP-SA-RAG aceptan el
+  mismo flujo, pero ignoran el perfil para no obtener una ventaja artificial.
+- Añadidos panel de perfil del estudiante y panel investigador protegido para
+  consultar usuarios, conversaciones, dominio y evidencia. El panel comparativo
+  continúa aislado y sin memoria para mantener igualdad experimental.
+- Suite ampliada a **41 tests aprobados**, incluidos hash/login, roles,
+  revocación, actualización de dominio, trazabilidad de evidencia y efecto del
+  estado persistente en el planificador v3.
+- Añadido `scripts/seed_demo_users.py`, ejecutable idempotente que deja dos
+  perfiles de estudiante contrastantes y una cuenta investigadora local para
+  recorrer el flujo completo sin utilizar participantes reales.
+- Actualizada `docs/fortnight-progress-memory.html` a 11 diapositivas: login,
+  nuevo esquema, regla de dominio, punto exacto de adaptación en v3, cuentas
+  demo, 41 tests y smoke test 5×4 con latencias observadas.
+- El frontend inicia con todos los controles académicos, comparativos y de
+  investigación deshabilitados; una sesión válida los habilita y cerrar sesión
+  vuelve a bloquearlos. Se añadió la cuenta local `test` con usuario, nombre y
+  PIN `test` para demostración rápida.
+- Añadido un timeout HTTP configurable de 30 segundos para Gemini. Si el modelo
+  está saturado o la red no responde, el turno termina con un mensaje explícito
+  en lugar de dejar indefinidamente bloqueada la interfaz.
+- Corregida la semántica de `Limpiar`: ahora crea un registro nuevo en
+  `conversations`, cambia el `conversation_id`, vacía el contexto activo y
+  actualiza el selector, preservando la conversación anterior como historial.
+  Se añadió una prueba de aislamiento entre la conversación previa y la nueva;
+  la suite queda en **42 tests aprobados**.
+- Reescrita la presentación quincenal en 11 diapositivas técnicas con flujo de
+  callbacks, conexiones entre capas, esquema relacional, autenticación,
+  contextualización, fórmula de dominio, punto de integración con v3, timeout,
+  metadata experimental y validaciones ejecutadas.
+- Añadido un segundo canal de evidencia desde la conversación: reglas
+  deterministas detectan autorreportes de comprensión, comprensión parcial,
+  confusión o solicitud de ayuda y los vinculan con los conceptos del último
+  turno del tutor. Su peso es 0,25 frente a 1,0 para botones. Las respuestas a
+  micro-checks sin respuesta verificable se almacenan con peso 0,0: cuentan como
+  observación, pero no modifican dominio. Suite ampliada a **44 tests**.
+- Rediseñada posteriormente como informe de avance doctoral de 12 diapositivas.
+  Cada avance distingue limitación inicial, implementación, evidencia técnica y
+  valor científico. Se añadió un esquema entidad–relación visual de las ocho
+  tablas, contratos entre módulos, secuencias de callbacks, ejemplos numéricos
+  de dominio, conexión exacta con el reranking de v3 y una matriz final
+  antes/estado actual/evidencia todavía requerida.
+
+### 2026-09-03 — Memoria conversacional persistente
+
+- Añadida persistencia SQLite con usuarios seudónimos, conversaciones, mensajes
+  y tabla preparada para dominio conceptual.
+- Implementados historial visible, creación y reapertura de conversaciones,
+  títulos automáticos, problema activo y resumen extractivo acumulativo.
+- Las respuestas breves y referencias se transforman en una consulta autónoma
+  usando los últimos turnos antes de ejecutar el retriever.
+- El LLM recibe resumen, problema activo y los ocho mensajes recientes; los
+  experimentos comparativos aislados siguen ejecutándose sin memoria.
+- La metadata por turno conserva método, proveedor, perfil, consulta de
+  retrieval, chunks, conceptos y latencia.
+- Añadidas pruebas de persistencia, aislamiento entre usuarios,
+  contextualización, resumen y normalización: 34 tests aprobados.
 
 ### 2026-08-20 — PEP-Plan-RAG v3
 

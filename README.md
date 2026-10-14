@@ -48,7 +48,76 @@ El constructor lee las páginas y los 639 marcadores del PDF porque la metadata 
 python app/chatbot.py
 ```
 
-La UI permite elegir `rag`, `graph_rag` o `pep_sa_rag` y activar el modo de investigación. Todas las condiciones usan exactamente `prompts/precalculus_tutor.txt`.
+La UI permite elegir `rag`, `graph_rag`, `pep_sa_rag` o `pep_plan_rag` y activar el modo de investigación. Todas las condiciones usan exactamente `prompts/precalculus_tutor.txt`.
+
+El chatbot guarda memoria local en `data/app/ai_tutor.sqlite3`. La interfaz
+incluye registro/inicio de sesión seudónimo con PIN, conversaciones aisladas por
+usuario, historial y continuidad de respuestas breves. Los PIN se almacenan como
+PBKDF2-HMAC-SHA256 con sal aleatoria, nunca como texto. El archivo SQLite está
+ignorado por Git y no debe contener nombres ni datos personales reales.
+
+PEP-Plan-RAG v3 carga automáticamente el perfil longitudinal del usuario antes
+del retrieval. El estudiante puede marcar `Lo entendí`, `Entendí parcialmente`
+o `Necesito más ayuda`; esa evidencia explícita actualiza el dominio continuo
+de los conceptos recuperados mediante:
+
+```text
+m_nuevo = m_anterior + alpha × (resultado - m_anterior)
+```
+
+Cada actualización conserva fuente, fecha, conversación, resultado y valor
+anterior/nuevo. Además, el sistema detecta autorreportes conversacionales como
+“ya entendí” o “no entiendo” con peso 0,25. Una respuesta matemática sin gold
+se registra como evidencia no calificada, pero no cambia dominio hasta poder
+verificar si es correcta. Para
+habilitar una cuenta investigadora, incluya previamente su ID seudónimo en
+`AI_TUTOR_RESEARCHER_IDS` dentro de `.env`; ese rol puede consultar perfiles e
+historiales desde la pestaña **Investigación**.
+
+Para recrear las cuentas locales de demostración de forma idempotente:
+
+```bash
+python scripts/seed_demo_users.py
+```
+
+El comando muestra los tres usuarios y PIN temporales. Estas credenciales son
+únicamente para demostración local y deben retirarse antes de un piloto real.
+
+La pestaña de comparación permanece sin memoria conversacional para que cada
+condición reciba exactamente la misma pregunta aislada.
+
+### Práctica guiada y evaluación
+
+Después de una respuesta del tutor, la pestaña **Práctica guiada** puede crear
+un micro-check asociado al concepto recuperado. Los validadores soportan
+respuestas numéricas seguras, opciones y rúbricas por palabras clave. Cada
+intento conserva respuesta, resultado, decisión pedagógica y dominio antes y
+después. La política selecciona una de cinco acciones:
+
+```text
+advance | consolidate | hint | remediate_prerequisite | worked_example
+```
+
+Las preguntas sin una respuesta verificable no se presentan como correctas por
+decisión del LLM: usan una rúbrica explícita o quedan como evidencia no calificada.
+
+### Modelos locales open-source
+
+La UI incluye `Qwen3-4B` y `Phi-4-mini` mediante un endpoint local compatible
+con OpenAI, como Ollama, vLLM o LM Studio. Para comprobar disponibilidad:
+
+```bash
+python scripts/manage_local_models.py
+```
+
+Después de instalar Ollama, la descarga explícita es:
+
+```bash
+python scripts/manage_local_models.py --pull
+```
+
+Los pesos no se descargan automáticamente. Qwen3-4B y Phi-4-mini cuantizado
+requieren varios GB de almacenamiento.
 
 El selector **Generador** ofrece `instructional` (fallback offline), `openai`,
 `local_base`, `local_finetuned`, `openai`, `gemini` y `deepseek`. Para respuestas naturales con un LLM, copie
@@ -60,6 +129,19 @@ La UI separa **modelo generador** y **acceso al conocimiento**. Esto permite
 comparar el LLM open-source normal, el mismo LLM con RAG/Graph-RAG/PEP-SA-RAG,
 y su adaptador fine-tuned bajo las mismas condiciones. Consulte la
 [matriz open-source](docs/open-source-experimental-matrix.md).
+
+El selector de modelo permanece visible en el chat. Si un proveedor interactivo
+devuelve un error temporal (por ejemplo, Gemini 503), el tutor puede responder
+con el generador local de respaldo y registra `requested_provider`,
+`effective_provider`, `fallback_used` y el error original. Este reemplazo no se
+usa silenciosamente en las comparaciones experimentales.
+
+Los botones de comprensión son **auto-reportes**, no calificaciones: se guardan
+en `student_self_reports` y no modifican el dominio. Un evaluador heurístico
+independiente analiza la respuesta libre y registra clasificación, puntuación,
+confianza y rasgos observados en `understanding_evaluations`. También se guarda
+la concordancia o contradicción entre ambas señales. Los micro-checks con una
+respuesta verificable continúan siendo evidencia de mayor calidad.
 
 ## Evaluate
 

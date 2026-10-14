@@ -11,6 +11,7 @@ paths:
   questions: data/evaluation/questions.jsonl
   graph: data/artifacts/pedagogical_graph.pkl
   indexes: data/artifacts/retrieval_indexes.pkl
+  conversations: data/app/ai_tutor.sqlite3
 embedding:
   backend: hashing
   model: hashing-vectorizer-v1
@@ -24,13 +25,35 @@ generation:
   provider: gemini
   model: gemini-3.6-flash
   temperature: 0.0
+  request_timeout_ms: 30000
+  gemini_fallback_model: gemini-2.5-flash-lite
   default_models:
     openai: gpt-4.1-mini
     gemini: gemini-3.6-flash
     deepseek: deepseek-chat
     local_base: qwen3:8b
+    local_qwen3_4b: qwen3:4b
+    local_phi4_mini: phi4-mini:3.8b
     local_finetuned: precalculus-tutor-qwen3:8b
     local_deepseek_base: deepseek-r1:7b
     local_deepseek_finetuned: precalculus-tutor-deepseek-r1:7b
     openai_finetuned: ""
   local_openai_base_url: http://127.0.0.1:11434/v1
+memory:
+  recent_messages: 8
+  summarize_after: 12
+  summary_max_chars: 1600
+learning_profile:
+  update_sources:
+    explicit_button: 1.0
+    conversational_self_report: 0.25
+    unscored_response: 0.0
+  mastery_initial: 0.5
+  mastery_update: "m_new = m_old + alpha * (outcome - m_old)"
+  alpha_min: 0.10
+  alpha_max: 0.50
+  outcomes:
+    understood: 1.0
+    partial: 0.6
+    needs_help: 0.2
+    incorrect: 0.0

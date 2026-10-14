@@ -12,6 +12,8 @@ class ModelFamily:
     tuning_mode:str
 
 FAMILIES={
+ "qwen3_4b":ModelFamily("qwen3_4b","Qwen3-4B · local","local_qwen3_4b",None,True,"Ollama/Hugging Face"),
+ "phi4_mini":ModelFamily("phi4_mini","Phi-4-mini · local","local_phi4_mini",None,True,"Ollama/Hugging Face"),
  "qwen3_8b":ModelFamily("qwen3_8b","Qwen3-8B","local_base","local_finetuned",True,"QLoRA local"),
  "deepseek_distill_qwen_7b":ModelFamily("deepseek_distill_qwen_7b","DeepSeek-R1-Distill-Qwen-7B","local_deepseek_base","local_deepseek_finetuned",True,"QLoRA local"),
  "openai":ModelFamily("openai","OpenAI GPT","openai","openai_finetuned",False,"Fine-tuning administrado"),
