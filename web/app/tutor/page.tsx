@@ -52,7 +52,9 @@ export default function TutorPage() {
       .catch(reason => { clearSession(); setError(reason.message); router.replace("/"); });
   }, [createConversation, loadConversation, router]);
 
-  useEffect(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), [messages, status]);
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, status]);
 
   async function send(message = input) {
     const clean = message.trim();
