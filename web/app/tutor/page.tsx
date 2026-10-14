@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, ArrowUp, BookOpen, ChevronRight, LogOut, Menu, MessageCirclePlus, Palette, Sparkles, X } from "lucide-react";
+import { Archive, ArrowUp, BookOpen, ChevronRight, LogOut, Menu, MessageCirclePlus, Palette, Sigma, Sparkles, X } from "lucide-react";
 import { Avatar, AvatarConfig, defaultAvatar } from "@/components/Avatar";
 import { api, streamChat } from "@/lib/api";
 import { clearSession, getSession, Session } from "@/lib/auth";
@@ -17,6 +17,22 @@ const prompts = [
   "¿Cuál es la diferencia entre relación y función?",
 ];
 
+const mathSymbols = [
+  { label: "x²", value: "x²", offset: 1 },
+  { label: "xⁿ", value: "xⁿ", offset: 1 },
+  { label: "√", value: "√()", offset: 2 },
+  { label: "fracción", value: "()/()", offset: 1 },
+  { label: "|x|", value: "|x|", offset: 2 },
+  { label: "f(x)", value: "f(x)", offset: 3 },
+  { label: "≤", value: " ≤ ", offset: 3 },
+  { label: "≥", value: " ≥ ", offset: 3 },
+  { label: "π", value: "π", offset: 1 },
+  { label: "θ", value: "θ", offset: 1 },
+  { label: "∞", value: "∞", offset: 1 },
+  { label: "sen", value: "sen()", offset: 4 },
+  { label: "cos", value: "cos()", offset: 4 },
+];
+
 export default function TutorPage() {
   const router = useRouter();
   const [me, setMe] = useState<Me | null>(null);
@@ -29,8 +45,10 @@ export default function TutorPage() {
   const [sending, setSending] = useState(false);
   const [sidebar, setSidebar] = useState(false);
   const [avatarOpen, setAvatarOpen] = useState(false);
+  const [mathOpen, setMathOpen] = useState(false);
   const [error, setError] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const loadConversation = useCallback(async (id: string) => {
     const item = await api<Conversation>(`/api/conversations/${id}`);
@@ -95,6 +113,19 @@ export default function TutorPage() {
     await api("/api/auth/logout", { method: "POST" }).catch(() => null); clearSession(); router.replace("/");
   }
 
+  function insertMath(value: string, offset: number) {
+    const field = inputRef.current;
+    const start = field?.selectionStart ?? input.length;
+    const end = field?.selectionEnd ?? start;
+    const updated = input.slice(0, start) + value + input.slice(end);
+    setInput(updated);
+    requestAnimationFrame(() => {
+      const cursor = start + offset;
+      inputRef.current?.focus();
+      inputRef.current?.setSelectionRange(cursor, cursor);
+    });
+  }
+
   const greeting = useMemo(() => me?.display_name?.split(" ")[0] || "estudiante", [me]);
 
   return (
@@ -138,8 +169,13 @@ export default function TutorPage() {
         </div>
         {error && <div className="chat-error">{error}<button onClick={() => setError("")}><X size={15}/></button></div>}
         <div className="composer-wrap">
+          {mathOpen && <div className="math-editor" aria-label="Teclado matemático">
+            <div><strong>Teclado matemático</strong><span>Inserta símbolos y completa los espacios entre paréntesis.</span></div>
+            <div className="math-symbols">{mathSymbols.map(symbol => <button type="button" key={symbol.label} onClick={() => insertMath(symbol.value, symbol.offset)}>{symbol.label}</button>)}</div>
+          </div>}
           <div className="composer">
-            <textarea value={input} onChange={event => setInput(event.target.value)} onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); send(); } }} placeholder="Escribe tu pregunta o cuéntame qué intentaste…" rows={1}/>
+            <button type="button" className={mathOpen ? "math-toggle active" : "math-toggle"} onClick={() => setMathOpen(value => !value)} aria-label="Abrir teclado matemático" title="Teclado matemático"><Sigma/></button>
+            <textarea ref={inputRef} value={input} onChange={event => setInput(event.target.value)} onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); send(); } }} placeholder="Escribe tu pregunta o una expresión, por ejemplo: f(x)=1/(x-2)" rows={1}/>
             <button disabled={!input.trim() || sending} onClick={() => send()} aria-label="Enviar"><ArrowUp/></button>
           </div>
           <small>PATI puede equivocarse. Comprueba los resultados importantes con tu docente.</small>

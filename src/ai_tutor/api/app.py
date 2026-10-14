@@ -172,7 +172,13 @@ def create_app(service: Optional[TutorApplicationService] = None) -> FastAPI:
             "user": {key: value for key, value in user.items() if key not in {"password_hash", "password_salt"}},
             "avatar": service.repository.get_avatar(user_id),
             "profile": service.repository.learning_report(user_id),
-            "conversations": [service.conversation_payload(item) for item in conversations],
+            "conversations": [
+                service.conversation_payload(
+                    service.repository.get_conversation(user_id, item.conversation_id, with_messages=True),
+                    include_messages=True,
+                )
+                for item in conversations
+            ],
         }
 
     return app
