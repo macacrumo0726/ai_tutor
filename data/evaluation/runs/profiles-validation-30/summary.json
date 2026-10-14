@@ -1,0 +1,160 @@
+{
+  "run_id": "profiles-validation-30",
+  "created_at": "2026-09-17T17:17:12.207906+00:00",
+  "design": "within-question counterfactual learner profiles",
+  "split": "validation",
+  "questions": 30,
+  "top_k": 5,
+  "methods": [
+    "rag",
+    "graph_rag",
+    "pep_plan_rag"
+  ],
+  "profiles": [
+    "unknown",
+    "high_prerequisite_mastery",
+    "prerequisite_gap"
+  ],
+  "profile_summary": [
+    {
+      "method": "graph_rag",
+      "profile": "high_prerequisite_mastery",
+      "n": 30,
+      "hit_at_k": 0.466667,
+      "recall_at_k": 0.227778,
+      "ndcg_at_k": 0.223418,
+      "concept_recall": 0.466667,
+      "prerequisite_recall": 0.633333,
+      "prerequisite_context_share": 0.126667,
+      "latency_ms": 13.263133
+    },
+    {
+      "method": "graph_rag",
+      "profile": "prerequisite_gap",
+      "n": 30,
+      "hit_at_k": 0.466667,
+      "recall_at_k": 0.227778,
+      "ndcg_at_k": 0.223418,
+      "concept_recall": 0.466667,
+      "prerequisite_recall": 0.633333,
+      "prerequisite_context_share": 0.126667,
+      "latency_ms": 12.795307
+    },
+    {
+      "method": "graph_rag",
+      "profile": "unknown",
+      "n": 30,
+      "hit_at_k": 0.466667,
+      "recall_at_k": 0.227778,
+      "ndcg_at_k": 0.223418,
+      "concept_recall": 0.466667,
+      "prerequisite_recall": 0.633333,
+      "prerequisite_context_share": 0.126667,
+      "latency_ms": 20.860508
+    },
+    {
+      "method": "pep_plan_rag",
+      "profile": "high_prerequisite_mastery",
+      "n": 30,
+      "hit_at_k": 0.333333,
+      "recall_at_k": 0.161111,
+      "ndcg_at_k": 0.152323,
+      "concept_recall": 0.333333,
+      "prerequisite_recall": 0.466667,
+      "prerequisite_context_share": 0.146667,
+      "latency_ms": 66.584496
+    },
+    {
+      "method": "pep_plan_rag",
+      "profile": "prerequisite_gap",
+      "n": 30,
+      "hit_at_k": 0.4,
+      "recall_at_k": 0.194444,
+      "ndcg_at_k": 0.157021,
+      "concept_recall": 0.4,
+      "prerequisite_recall": 0.566667,
+      "prerequisite_context_share": 0.173333,
+      "latency_ms": 61.17396
+    },
+    {
+      "method": "pep_plan_rag",
+      "profile": "unknown",
+      "n": 30,
+      "hit_at_k": 0.4,
+      "recall_at_k": 0.194444,
+      "ndcg_at_k": 0.154345,
+      "concept_recall": 0.4,
+      "prerequisite_recall": 0.566667,
+      "prerequisite_context_share": 0.173333,
+      "latency_ms": 62.725317
+    },
+    {
+      "method": "rag",
+      "profile": "high_prerequisite_mastery",
+      "n": 30,
+      "hit_at_k": 0.233333,
+      "recall_at_k": 0.111111,
+      "ndcg_at_k": 0.087372,
+      "concept_recall": 0.233333,
+      "prerequisite_recall": 0.333333,
+      "prerequisite_context_share": 0.106667,
+      "latency_ms": 10.590097
+    },
+    {
+      "method": "rag",
+      "profile": "prerequisite_gap",
+      "n": 30,
+      "hit_at_k": 0.233333,
+      "recall_at_k": 0.111111,
+      "ndcg_at_k": 0.087372,
+      "concept_recall": 0.233333,
+      "prerequisite_recall": 0.333333,
+      "prerequisite_context_share": 0.106667,
+      "latency_ms": 12.285061
+    },
+    {
+      "method": "rag",
+      "profile": "unknown",
+      "n": 30,
+      "hit_at_k": 0.233333,
+      "recall_at_k": 0.111111,
+      "ndcg_at_k": 0.087372,
+      "concept_recall": 0.233333,
+      "prerequisite_recall": 0.333333,
+      "prerequisite_context_share": 0.106667,
+      "latency_ms": 11.771621
+    }
+  ],
+  "counterfactual_summary": [
+    {
+      "method": "rag",
+      "paired_questions": 30,
+      "chunk_jaccard_distance": 0.0,
+      "prerequisite_recall_lift": 0.0,
+      "prerequisite_context_lift": 0.0,
+      "target_recall_cost": 0.0
+    },
+    {
+      "method": "graph_rag",
+      "paired_questions": 30,
+      "chunk_jaccard_distance": 0.0,
+      "prerequisite_recall_lift": 0.0,
+      "prerequisite_context_lift": 0.0,
+      "target_recall_cost": 0.0
+    },
+    {
+      "method": "pep_plan_rag",
+      "paired_questions": 30,
+      "chunk_jaccard_distance": 0.187302,
+      "prerequisite_recall_lift": 0.1,
+      "prerequisite_context_lift": 0.026667,
+      "target_recall_cost": -0.066667
+    }
+  ],
+  "interpretation": {
+    "chunk_jaccard_distance": "0=invariante; valores mayores indican adaptación del contexto al perfil",
+    "prerequisite_recall_lift": "recall con brecha menos recall con dominio alto; positivo favorece adaptación",
+    "prerequisite_context_lift": "proporción de chunks de prerrequisito con brecha menos dominio alto",
+    "target_recall_cost": "pérdida de recall del concepto objetivo al adaptar; cerca de 0 es deseable"
+  }
+}

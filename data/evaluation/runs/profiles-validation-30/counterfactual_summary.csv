@@ -1,0 +1,4 @@
+method,paired_questions,chunk_jaccard_distance,prerequisite_recall_lift,prerequisite_context_lift,target_recall_cost
+rag,30,0.0,0.0,0.0,0.0
+graph_rag,30,0.0,0.0,0.0,0.0
+pep_plan_rag,30,0.187302,0.1,0.026667,-0.066667
