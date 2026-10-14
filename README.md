@@ -50,6 +50,30 @@ python app/chatbot.py
 
 La UI permite elegir `rag`, `graph_rag`, `pep_sa_rag` o `pep_plan_rag` y activar el modo de investigación. Todas las condiciones usan exactamente `prompts/precalculus_tutor.txt`.
 
+### Nueva aplicación web
+
+La experiencia preparada para evolucionar hacia nube está separada de Gradio:
+
+```bash
+pip install -e '.[web]'
+python scripts/run_api.py
+```
+
+En otra terminal:
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+Visite `http://localhost:3000`. La interfaz de estudiante ofrece login,
+conversaciones persistentes, respuesta progresiva, avatar y progreso sin exponer
+la arquitectura experimental. La ruta `/admin` concentra las funciones de
+investigación y requiere un ID incluido en `AI_TUTOR_RESEARCHER_IDS` antes del
+registro. Consulte [la arquitectura web](docs/cloud_web_architecture.md) para
+conocer límites actuales y decisiones pendientes de Azure.
+
 El chatbot guarda memoria local en `data/app/ai_tutor.sqlite3`. La interfaz
 incluye registro/inicio de sesión seudónimo con PIN, conversaciones aisladas por
 usuario, historial y continuidad de respuestas breves. Los PIN se almacenan como

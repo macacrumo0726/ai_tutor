@@ -38,6 +38,15 @@ class ConversationRepository:
                 password_salt TEXT NOT NULL DEFAULT '',
                 role TEXT NOT NULL DEFAULT 'student'
             );
+            CREATE TABLE IF NOT EXISTS avatars (
+                user_id TEXT PRIMARY KEY REFERENCES users(user_id) ON DELETE CASCADE,
+                style TEXT NOT NULL DEFAULT 'orbit',
+                skin_tone TEXT NOT NULL DEFAULT 'sunny',
+                hair TEXT NOT NULL DEFAULT 'waves',
+                accessory TEXT NOT NULL DEFAULT 'stars',
+                background TEXT NOT NULL DEFAULT 'violet',
+                updated_at TEXT NOT NULL
+            );
             CREATE TABLE IF NOT EXISTS conversations (
                 conversation_id TEXT PRIMARY KEY,
                 user_id TEXT NOT NULL REFERENCES users(user_id),
@@ -206,6 +215,28 @@ class ConversationRepository:
         with self._connect() as db:
             return [dict(row) for row in db.execute(
                 "SELECT user_id,display_name,role,created_at FROM users ORDER BY created_at DESC").fetchall()]
+
+    def get_avatar(self, user_id: str):
+        user_id = self.ensure_user(user_id)
+        with self._connect() as db:
+            db.execute("INSERT OR IGNORE INTO avatars(user_id,updated_at) VALUES(?,?)", (user_id, _now()))
+            row = db.execute("SELECT * FROM avatars WHERE user_id=?", (user_id,)).fetchone()
+        return dict(row)
+
+    def upsert_avatar(self, user_id: str, **values):
+        user_id = self.ensure_user(user_id)
+        allowed = {"style", "skin_tone", "hair", "accessory", "background"}
+        avatar = self.get_avatar(user_id)
+        avatar.update({key: str(value)[:40] for key, value in values.items() if key in allowed})
+        with self._connect() as db:
+            db.execute("""INSERT INTO avatars(user_id,style,skin_tone,hair,accessory,background,updated_at)
+                VALUES(?,?,?,?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET
+                style=excluded.style,skin_tone=excluded.skin_tone,hair=excluded.hair,
+                accessory=excluded.accessory,background=excluded.background,updated_at=excluded.updated_at""", (
+                user_id, avatar["style"], avatar["skin_tone"], avatar["hair"],
+                avatar["accessory"], avatar["background"], _now(),
+            ))
+        return self.get_avatar(user_id)
 
     def get_mastery(self, user_id: str):
         user_id = self.normalize_user_id(user_id)
@@ -425,6 +456,9 @@ class ConversationRepository:
         with self._connect() as db:
             db.execute(f"UPDATE conversations SET {assignment} WHERE conversation_id=?", [*updates.values(), conversation_id])
         return self.get_conversation(user_id, conversation_id)
+
+    def archive_conversation(self, user_id: str, conversation_id: str):
+        return self.update_conversation(user_id, conversation_id, archived=True)
 
     @staticmethod
     def _conversation(row) -> Conversation:
