@@ -27,6 +27,7 @@ h1, h2, h3, .brand-mark, .sidebar-brand { font-family: "Outfit Variable", sans-s
 .story-copy h1 { font-size: clamp(3rem, 5vw, 5.5rem); line-height: .98; letter-spacing: -.045em; margin: 18px 0 25px; }
 .story-copy h1 em { display: block; color: #ffd168; font-style: normal; }
 .story-copy p { font-size: 1.15rem; line-height: 1.7; max-width: 590px; color: rgba(255,255,255,.82); }
+.brand-expansion { width: fit-content; margin-top: 15px; padding: 8px 13px; border: 1px solid rgba(255,255,255,.2); border-radius: 99px; background: rgba(255,255,255,.09); color: rgba(255,255,255,.82); font-size: .75rem; font-weight: 800; letter-spacing: .035em; }
 .feature-row { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 30px; }
 .feature-row span { display: flex; align-items: center; gap: 8px; padding: 10px 15px; border-radius: 99px; background: rgba(255,255,255,.11); border: 1px solid rgba(255,255,255,.18); font-weight: 700; }
 .feature-row svg { width: 18px; color: #83f8e8; }

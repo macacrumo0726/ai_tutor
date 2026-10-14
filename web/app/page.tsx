@@ -36,11 +36,12 @@ export default function LoginPage() {
     <main className="login-page">
       <MathBackdrop />
       <section className="login-story">
-        <div className="brand-mark"><Sparkles size={22}/> Numa</div>
+        <div className="brand-mark"><Sparkles size={22}/> PATI</div>
         <div className="story-copy">
           <span className="eyebrow">TU COMPAÑERO DE PRECÁLCULO</span>
           <h1>Las matemáticas se entienden mejor <em>paso a paso.</em></h1>
-          <p>Numa recuerda tu proceso, detecta qué conocimiento necesitas y adapta cada explicación a tu forma de aprender.</p>
+          <p>PATI recuerda tu proceso, identifica los conocimientos previos que necesitas y adapta cada explicación a tu forma de aprender.</p>
+          <div className="brand-expansion">Prerequisite-aware · Adaptive · Tutoring · Intelligence</div>
           <div className="feature-row">
             <span><BrainCircuit/> Aprende contigo</span>
             <span><BookOpen/> Explica con evidencia</span>
@@ -50,7 +51,7 @@ export default function LoginPage() {
       </section>
       <section className="login-panel-wrap">
         <div className="login-card glass-card">
-          <div className="mobile-brand"><Sparkles/> Numa</div>
+          <div className="mobile-brand"><Sparkles/> PATI</div>
           <span className="welcome-dot">●</span>
           <h2>{mode === "login" ? "¡Qué bueno verte!" : "Crea tu espacio"}</h2>
           <p>{mode === "login" ? "Continuemos desde donde quedaste." : "Empieza una experiencia de aprendizaje hecha para ti."}</p>

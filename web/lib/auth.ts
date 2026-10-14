@@ -6,7 +6,7 @@ export type Session = {
   authenticated: boolean;
 };
 
-const SESSION_KEY = "numa-session";
+const SESSION_KEY = "pati-session";
 
 export function getSession(): Session | null {
   if (typeof window === "undefined") return null;

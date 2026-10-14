@@ -98,7 +98,7 @@ export default function TutorPage() {
   return (
     <main className="tutor-app">
       <aside className={sidebar ? "conversation-sidebar open" : "conversation-sidebar"}>
-        <div className="sidebar-brand"><span><Sparkles size={20}/> Numa</span><button className="mobile-only icon-button" onClick={() => setSidebar(false)}><X/></button></div>
+        <div className="sidebar-brand"><span><Sparkles size={20}/> PATI</span><button className="mobile-only icon-button" onClick={() => setSidebar(false)}><X/></button></div>
         <button className="new-chat" onClick={createConversation}><MessageCirclePlus size={19}/> Nueva conversación</button>
         <p className="sidebar-label">Tus conversaciones</p>
         <nav className="conversation-list">
@@ -115,7 +115,7 @@ export default function TutorPage() {
       <section className="chat-workspace">
         <header className="chat-header">
           <button className="mobile-only icon-button" onClick={() => setSidebar(true)}><Menu/></button>
-          <div className="tutor-identity"><div className="numa-orb"><Sparkles size={20}/></div><div><strong>Numa</strong><span><i/> Tutor disponible</span></div></div>
+          <div className="tutor-identity"><div className="numa-orb"><Sparkles size={20}/></div><div><strong>PATI</strong><span><i/> Tutora disponible</span></div></div>
           <button className="profile-chip" onClick={() => setAvatarOpen(true)}><span>Hola, {greeting}</span><Avatar config={avatar} size={42}/><ChevronRight size={17}/></button>
         </header>
         <div className="messages-stage">
@@ -140,7 +140,7 @@ export default function TutorPage() {
             <textarea value={input} onChange={event => setInput(event.target.value)} onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); send(); } }} placeholder="Escribe tu pregunta o cuéntame qué intentaste…" rows={1}/>
             <button disabled={!input.trim() || sending} onClick={() => send()} aria-label="Enviar"><ArrowUp/></button>
           </div>
-          <small>Numa puede equivocarse. Comprueba los resultados importantes con tu docente.</small>
+          <small>PATI puede equivocarse. Comprueba los resultados importantes con tu docente.</small>
         </div>
       </section>
       {avatarOpen && <div className="modal-backdrop" onMouseDown={() => setAvatarOpen(false)}><section className="avatar-modal glass-card" onMouseDown={event => event.stopPropagation()}>

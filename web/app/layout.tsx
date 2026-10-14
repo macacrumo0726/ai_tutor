@@ -3,8 +3,8 @@ import "@fontsource-variable/outfit";
 import "./globals.css";
 
 export const metadata = {
-  title: "Numa · Tutor de Precálculo",
-  description: "Un tutor que te acompaña a comprender Precálculo paso a paso.",
+  title: "PATI · Tutora inteligente de Precálculo",
+  description: "Tutoría adaptativa consciente de prerrequisitos para aprender Precálculo paso a paso.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
