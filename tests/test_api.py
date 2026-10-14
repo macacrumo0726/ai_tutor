@@ -130,3 +130,35 @@ def test_student_text_removes_model_formatting_delimiters():
     assert _student_text("Si `x = 2`, entonces $x$ no pertenece al dominio.") == (
         "Si x = 2, entonces x no pertenece al dominio."
     )
+
+
+def test_wrong_verified_answer_updates_profile_as_incorrect(tmp_path, monkeypatch):
+    repository = ConversationRepository(tmp_path / "verified.sqlite3")
+    service = TutorApplicationService(repository=repository)
+    identity = service.auth.register("student", "Student", "1234")
+    conversation = service.memory.create("student", title="Dominio")
+    service.memory.record_turn(
+        "student",
+        conversation.conversation_id,
+        "Dame un ejercicio",
+        "Para 1/(x - 5), ¿qué valor hace cero el denominador?",
+        {"concepts": ["1_4_dominio_de_una_expresion_algebraica"]},
+    )
+
+    class FakeTutor:
+        def ask(self, *args, **kwargs):
+            from ai_tutor.retrieval.base import RetrievalResult
+            from ai_tutor.tutoring.tutor import TutorResponse
+            assert "respuesta '8' es INCORRECTA" in kwargs["conversation_context"]
+            retrieval = RetrievalResult("8", [], ["1_4_dominio_de_una_expresion_algebraica"], [], {}, 0.0, {})
+            return TutorResponse("Revisa: x - 5 = 0 da x = 5, no 8.", retrieval, 0.0, 1.0,
+                                 generation_provider="fake", generation_model="fake")
+
+    monkeypatch.setattr(service, "tutor", lambda provider: FakeTutor())
+    result = service.ask(identity, conversation.conversation_id, "8")
+
+    assert result["metadata"]["response_verification"]["status"] == "incorrect"
+    report = repository.learning_report("student")
+    mastery = next(item for item in report["mastery"] if item["concept_id"] == "1_4_dominio_de_una_expresion_algebraica")
+    assert mastery["mastery"] < 0.5
+    assert report["understanding_evaluations"][0]["classification"] == "not_understood"

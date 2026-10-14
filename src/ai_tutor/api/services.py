@@ -7,7 +7,7 @@ from dataclasses import asdict
 from threading import Lock
 from typing import Optional
 
-from ai_tutor.assessment import UnderstandingEvaluator
+from ai_tutor.assessment import UnderstandingEvaluator, verify_short_math_response
 from ai_tutor.generation.factory import create_generator
 from ai_tutor.memory import AuthenticationService, ConversationMemory, ConversationRepository, LearningProfileService
 from ai_tutor.tutoring.tutor import Tutor
@@ -109,6 +109,27 @@ class TutorApplicationService:
             return {"answer": answer, "metadata": metadata}
 
         profile = self.learning.state_for(user_id)
+        prior_messages = prepared["messages"]
+        previous_tutor = next((item for item in reversed(prior_messages) if item.role == "assistant"), None)
+        verification = verify_short_math_response(
+            message,
+            previous_tutor.content if previous_tutor else "",
+        )
+        conversation_context = prepared["conversation_context"]
+        if verification:
+            verdict = "CORRECTA" if verification["status"] == "correct" else "INCORRECTA"
+            conversation_context += (
+                "\n\nVerificación matemática determinista del turno actual: "
+                f"la respuesta {message!r} es {verdict}. "
+                f"Valor esperado: {verification['expected_value']:g}. "
+                f"Regla: {verification['explanation']}. "
+                "Respeta esta verificación; no felicites una respuesta incorrecta."
+            )
+        elif previous_tutor and "?" in previous_tutor.content and len(message.strip()) <= 40:
+            conversation_context += (
+                "\n\nLa respuesta breve actual no tiene verificación automática disponible. "
+                "No afirmes que es correcta sin comprobarla explícitamente dentro de tu respuesta."
+            )
         provider = self.default_provider
         retrieval_method = self.default_retrieval
         response = None
@@ -122,7 +143,7 @@ class TutorApplicationService:
                 retrieval_method,
                 knowledge_mode="instructional_database",
                 student_profile=profile,
-                conversation_context=prepared["conversation_context"],
+                conversation_context=conversation_context,
                 retrieval_query=prepared["retrieval_query"],
             )
             requested_error = response.generation_error
@@ -138,7 +159,7 @@ class TutorApplicationService:
                 retrieval_method,
                 knowledge_mode="instructional_database",
                 student_profile=profile,
-                conversation_context=prepared["conversation_context"],
+                conversation_context=conversation_context,
                 retrieval_query=prepared["retrieval_query"],
             )
         if response is None:
@@ -157,17 +178,47 @@ class TutorApplicationService:
             "fallback_used": effective_provider != provider or model_fallback_used,
             "requested_provider": provider,
             "requested_provider_error": requested_error or primary_provider_error,
+            "response_verification": verification or {"status": "not_available"},
         }
         answer = _student_text(response.answer)
-        prior_messages = prepared["messages"]
-        previous_tutor = next((item for item in reversed(prior_messages) if item.role == "assistant"), None)
+        if verification and verification["status"] == "incorrect":
+            student_value = verification["student_value"]
+            expected_value = verification["expected_value"]
+            answer = (
+                f"Revisemos esa respuesta: si sustituyes x = {student_value:g}, "
+                "el denominador no queda en cero. Para encontrar el valor que debemos excluir, "
+                f"resolvemos {verification['explanation']}. Por eso el valor correcto es "
+                f"x = {expected_value:g}, no {student_value:g}. "
+                "¿Puedes comprobarlo sustituyendo ese valor en el denominador?"
+            )
+            metadata["answer_guardrail_used"] = True
+        else:
+            metadata["answer_guardrail_used"] = False
         previous_concepts = previous_tutor.metadata.get("concepts", []) if previous_tutor else concepts
-        evaluation = self.understanding.evaluate(
-            message,
-            previous_tutor.content if previous_tutor else "",
-            previous_concepts,
-            self.concept_labels,
-        )
+        if verification:
+            is_correct = verification["status"] == "correct"
+            evaluation = {
+                "classification": "understood" if is_correct else "not_understood",
+                "score": 1.0 if is_correct else 0.0,
+                "confidence": verification["confidence"],
+                "features": verification,
+            }
+            for concept_id in previous_concepts[:5]:
+                self.repository.add_learning_evidence(
+                    user_id, concept_id, "verified_conversational_response",
+                    evaluation["score"], "deterministic_math_verifier",
+                    conversation_id, verification, verification["confidence"],
+                )
+        else:
+            evaluation = self.understanding.evaluate(
+                message,
+                previous_tutor.content if previous_tutor else "",
+                previous_concepts,
+                self.concept_labels,
+            )
+            self.learning.infer_from_response(
+                user_id, message, prior_messages, conversation_id, previous_concepts,
+            )
         self.repository.save_understanding_evaluation(
             user_id,
             conversation_id,
@@ -177,7 +228,7 @@ class TutorApplicationService:
             evaluation["score"],
             evaluation["confidence"],
             evaluation["features"],
-            "heuristic_v1",
+            "deterministic_math_verifier_v1" if verification else "heuristic_v1",
         )
         self.memory.record_turn(user_id, conversation_id, message, answer, metadata)
         return {"answer": answer, "metadata": metadata}
