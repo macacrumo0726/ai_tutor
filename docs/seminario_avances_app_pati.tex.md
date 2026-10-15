@@ -113,8 +113,9 @@ PATI ya tiene una base web funcional con autenticación, persistencia, consentim
 \textbf{Inicio de sesión}
 \begin{itemize}
   \item Cada cuenta usa un seudónimo y un PIN.
-  \item El PIN no se almacena: se guarda un hash PBKDF2-HMAC-SHA256 con sal aleatoria.
-  \item La API emite una sesión opaca y la interfaz la conserva mientras dura la sesión.
+  \item El PIN no se guarda como texto. La aplicación lo transforma en una huella protegida mediante PBKDF2-HMAC-SHA256.
+  \item Después de iniciar sesión, la API entrega un código temporal que identifica la sesión.
+  \item Ese código se envía en cada solicitud y deja de funcionar al cerrar la sesión.
 \end{itemize}
 
 \column{0.43\textwidth}
@@ -169,32 +170,47 @@ Describe los datos recogidos, consentimiento informado, almacenamiento instituci
 \end{block}
 \end{frame}
 
-\begin{frame}{5. Bloqueo backend y trazabilidad}
+\begin{frame}{5. Vistas, base de datos y permisos}
 \begin{columns}[T]
-\column{0.47\textwidth}
-\textbf{Rutas públicas antes de aceptar}
+\column{0.31\textwidth}
+\textbf{Vista del estudiante}
+\scriptsize
 \begin{itemize}
-  \item Resumen del protocolo.
-  \item PDF completo.
-  \item Estado de aceptación del usuario autenticado.
+  \item Login y protocolo.
+  \item Chat y conversaciones.
+  \item Historial y avatar.
+  \item Perfil de aprendizaje.
 \end{itemize}
 
-\column{0.47\textwidth}
-\textbf{Rutas protegidas}
+\column{0.31\textwidth}
+\textbf{Vista del administrador}
+\scriptsize
 \begin{itemize}
-  \item Chat y conversaciones.
-  \item Avatar, progreso y actividades.
-  \item Feedback y actualización del perfil.
+  \item Lista de usuarios seudónimos.
+  \item Estado del protocolo.
+  \item Conversaciones autorizadas.
+  \item Evidencias y dominio por concepto.
+\end{itemize}
+
+\column{0.31\textwidth}
+\textbf{Base de datos}
+\scriptsize
+\begin{itemize}
+  \item Usuarios y roles.
+  \item Aceptaciones del protocolo.
+  \item Conversaciones y mensajes.
+  \item Evidencias, dominio y feedback.
 \end{itemize}
 \end{columns}
 
 \vfill
-\begin{block}{Regla de autorización}
-Si no existe una aceptación vigente, el backend responde HTTP 428 y no ejecuta el tutor. La interfaz no es la única barrera.
+\begin{block}{Regla central}
+\small
+El estudiante solo consulta sus propios datos. El administrador puede revisar la información necesaria para la investigación. Si no existe una aceptación vigente, el backend responde HTTP 428 y no ejecuta el tutor.
 \end{block}
 
-\small
-La tabla \texttt{protocol\_acceptances} se inicializa mediante el repositorio y está documentada en \texttt{migrations/001\_protocol\_acceptances.sql}.
+\scriptsize
+La tabla \texttt{protocol\_acceptances} registra usuario, versión, aceptación y fecha UTC. La migración está en \texttt{migrations/001\_protocol\_acceptances.sql}.
 \end{frame}
 
 \begin{frame}{6. Memoria conversacional y perfil del estudiante}
