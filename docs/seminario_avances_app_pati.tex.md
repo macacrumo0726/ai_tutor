@@ -36,8 +36,23 @@ despliegue posterior en Azure.
 
 \begin{document}
 
-\begin{frame}
-  \titlepage
+\begin{frame}[plain]
+  \vspace*{12mm}
+  {\color{patiBlue}\Huge\bfseries PATI\par}
+  \vspace{3mm}
+  {\color{patiBlue}\LARGE\bfseries De prototipo experimental a aplicación web investigable\par}
+  \vspace{5mm}
+  {\large Avances en autenticación, consentimiento, memoria y control de acceso\par}
+  \vspace{8mm}
+  \begin{beamercolorbox}[sep=7pt,wd=\textwidth]{block body}
+  \textbf{PATI} significa \textit{Prerequisite-aware Adaptive Tutoring Intelligence}:
+  una tutora inteligente que considera prerrequisitos, adapta el apoyo al estudiante
+  y conserva trazabilidad de cada interacción.
+  \end{beamercolorbox}
+  \vfill
+  \textbf{M. Cruz}\\
+  Investigación doctoral sobre tutores LLM de Precálculo\\
+  Seminario de avances
 \end{frame}
 
 \begin{frame}{1. Problema de ingeniería y de investigación}
@@ -122,8 +137,8 @@ Un estudiante que solicita \texttt{/api/admin/overview} recibe HTTP 403. Un admi
 \begin{frame}{4. Consentimiento y protocolo de datos}
 \centering
 \begin{tikzpicture}[
-  node distance=8mm,
-  step/.style={draw=patiBlue,fill=patiLight,rounded corners,align=center,minimum width=3.3cm,minimum height=0.75cm,font=\small},
+  node distance=3mm,
+  step/.style={draw=patiBlue,fill=patiLight,rounded corners,align=center,minimum width=2.85cm,minimum height=0.75cm,font=\small},
   arrow/.style={-{Latex[length=2mm]},thick,color=patiCyan}
 ]
 \node[step] (login) {Login / registro};
