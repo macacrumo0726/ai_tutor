@@ -20,7 +20,7 @@ class ConversationMemory:
         return {
             "conversation": conversation,
             "messages": messages,
-            "retrieval_query": contextualize(message, messages),
+            "retrieval_query": contextualize(message, messages, conversation.active_problem),
             "conversation_context": format_history(
                 conversation.summary, conversation.active_problem, messages, self.recent_messages
             ),
