@@ -100,9 +100,10 @@ PATI ya tiene una base web funcional con autenticación, persistencia, consentim
 
 \vfill
 \begin{itemize}
-  \item El frontend no expone chunks, scores ni controles experimentales al estudiante.
-  \item El backend aplica autenticación y autorización antes de ejecutar operaciones.
-  \item El mismo núcleo de retrieval se utiliza desde el chatbot, los scripts y las pruebas.
+  \item \textbf{Presentación:} Next.js gestiona login, chat, historial, perfil y vista admin.
+  \item \textbf{Aplicación:} FastAPI valida sesión, rol, protocolo y conecta cada solicitud con PATI.
+  \item \textbf{Datos:} SQLite conserva usuarios seudónimos, conversaciones, evidencias y dominio.
+  \item \textbf{Investigación:} el núcleo común permite ejecutar el mismo retrieval desde UI y scripts.
 \end{itemize}
 \end{frame}
 
@@ -117,8 +118,8 @@ PATI ya tiene una base web funcional con autenticación, persistencia, consentim
 \end{itemize}
 
 \column{0.43\textwidth}
-\small
-\begin{tabular}{p{2.2cm}p{4.1cm}}
+\scriptsize
+\begin{tabular}{p{1.8cm}p{4.4cm}}
 \toprule
 \textbf{Rol} & \textbf{Permisos}\\
 \midrule
@@ -130,6 +131,7 @@ admin & todo lo anterior, usuarios, historiales y métricas\\
 
 \vfill
 \begin{block}{Control probado}
+\small
 Un estudiante que solicita \texttt{/api/admin/overview} recibe HTTP 403. Un administrador recibe HTTP 200. La protección existe en el backend, aunque el usuario conozca la URL de administración.
 \end{block}
 \end{frame}
@@ -150,7 +152,8 @@ Un estudiante que solicita \texttt{/api/admin/overview} recibe HTTP 403. Un admi
 \draw[arrow] (check)--(chat);
 \end{tikzpicture}
 
-\vspace{4mm}
+\vspace{3mm}
+\small
 \begin{itemize}
   \item El botón ``Aceptar y continuar'' permanece deshabilitado hasta marcar la casilla.
   \item La base registra usuario seudónimo, versión, aceptación y fecha/hora UTC.
@@ -160,6 +163,10 @@ Un estudiante que solicita \texttt{/api/admin/overview} recibe HTTP 403. Un admi
   \]
   \item Si cambia el PDF, la versión cambia y el backend vuelve a bloquear el acceso.
 \end{itemize}
+\begin{block}{Contenido del protocolo}
+\scriptsize
+Describe los datos recogidos, consentimiento informado, almacenamiento institucional, control de acceso, retención, eliminación segura y mitigación de riesgos.
+\end{block}
 \end{frame}
 
 \begin{frame}{5. Bloqueo backend y trazabilidad}
@@ -228,8 +235,10 @@ El perfil alimenta PEP-Plan-RAG v3 antes del retrieval: el planificador puede pr
 \vspace{3mm}
 \textbf{Cambio implementado}
 \begin{enumerate}
-  \item Se conserva un ancla compacta del problema activo.
-  \item Las respuestas cortas se recuperan contra esa ancla y no contra todo el transcript.
+  \item Se conserva un \textbf{ancla}: una frase breve que identifica el ejercicio activo.\\
+  \scriptsize Ejemplo: ``Ayúdame a factorizar $x^2-5x+6$''.
+  \normalsize
+  \item ``4 y 6'' se recupera contra esa frase, no contra todo el transcript.
   \item El generador offline separa estrictamente pregunta, contexto, evidencia y traza.
 \end{enumerate}
 
@@ -265,6 +274,7 @@ La aplicación está separada en frontend y API, puede ejecutarse localmente con
 
 \begin{frame}{9. Validación del avance}
 \begin{center}
+\small
 \begin{tabular}{lr}
 \toprule
 \textbf{Validación} & \textbf{Resultado}\\
@@ -281,17 +291,20 @@ PDF del protocolo & HTTP 200\\
 \end{center}
 
 \vfill
-Estas pruebas verifican infraestructura y seguridad. Todavía no demuestran superioridad pedagógica entre los métodos de retrieval; esa comparación requiere el benchmark con estudiantes y preguntas controladas.
+\small
+Las pruebas cubren autenticación, consentimiento, permisos, persistencia, memoria, retrieval y compilación del frontend. Verifican infraestructura y seguridad; todavía no demuestran superioridad pedagógica entre los métodos.
 \end{frame}
 
 \begin{frame}{10. Próximos pasos}
+\small
 \begin{enumerate}
   \item Migrar sesiones a un mecanismo persistente y seguro para múltiples instancias.
   \item Sustituir SQLite por Azure Database for PostgreSQL y mover artefactos grandes a Blob Storage.
   \item Almacenar claves en Azure Key Vault y habilitar Application Insights.
-  \item Ejecutar un piloto controlado con estudiantes y consentimiento aprobado.
+  \item Esperar la aprobación del Comité de Ética; el protocolo ya fue enviado.
+  \item Ejecutar un piloto con estudiantes después de la aprobación y el consentimiento informado.
   \item Comparar RAG, Graph-RAG y PEP-Plan-RAG v3 con métricas de recuperación y orientación pedagógica.
-  \item Analizar por separado calidad de respuesta, memoria, comprensión y latencia.
+  \item Analizar calidad de respuesta, memoria, comprensión y latencia por separado.
 \end{enumerate}
 
 \vfill
