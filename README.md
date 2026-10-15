@@ -70,7 +70,7 @@ npm run dev
 Visite `http://localhost:3000`. La interfaz de estudiante ofrece login,
 conversaciones persistentes, respuesta progresiva, avatar y progreso sin exponer
 la arquitectura experimental. La ruta `/admin` concentra las funciones de
-investigación y requiere un ID incluido en `AI_TUTOR_RESEARCHER_IDS` antes del
+investigación y requiere un ID incluido en `AI_TUTOR_ADMIN_IDS` antes del
 registro. Consulte [la arquitectura web](docs/cloud_web_architecture.md) para
 conocer límites actuales y decisiones pendientes de Azure.
 
@@ -104,7 +104,7 @@ anterior/nuevo. Además, el sistema detecta autorreportes conversacionales como
 se registra como evidencia no calificada, pero no cambia dominio hasta poder
 verificar si es correcta. Para
 habilitar una cuenta investigadora, incluya previamente su ID seudónimo en
-`AI_TUTOR_RESEARCHER_IDS` dentro de `.env`; ese rol puede consultar perfiles e
+`AI_TUTOR_ADMIN_IDS` dentro de `.env`; ese rol puede consultar perfiles e
 historiales desde la pestaña **Investigación**.
 
 Para recrear las cuentas locales de demostración de forma idempotente:

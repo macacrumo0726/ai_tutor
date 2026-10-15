@@ -16,7 +16,7 @@ export default function AdminPage() {
   const router = useRouter(); const [overview, setOverview] = useState<Overview | null>(null); const [users, setUsers] = useState<User[]>([]);
   const [selected, setSelected] = useState<UserDetail | null>(null); const [selectedConversation, setSelectedConversation] = useState(""); const [filter, setFilter] = useState(""); const [error, setError] = useState("");
   useEffect(() => {
-    if (getSession()?.role !== "researcher") { router.replace("/tutor"); return; }
+    if (getSession()?.role !== "admin") { router.replace("/tutor"); return; }
     Promise.all([api<Overview>("/api/admin/overview"), api<User[]>("/api/admin/users")]).then(([summary, list]) => { setOverview(summary); setUsers(list); }).catch(reason => setError(reason.message));
   }, [router]);
   async function selectUser(userId: string) { const detail = await api<UserDetail>(`/api/admin/users/${userId}`); setSelected(detail); setSelectedConversation(detail.conversations[0]?.conversation_id || ""); }

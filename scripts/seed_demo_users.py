@@ -44,7 +44,7 @@ DEMO_USERS = (
 def main():
     config = load_config()
     repository = ConversationRepository(project_path(config["paths"]["conversations"]))
-    auth = AuthenticationService(repository, researcher_ids="investigador_demo")
+    auth = AuthenticationService(repository, admin_ids="investigador_demo")
     learning = LearningProfileService(repository)
     memory = ConversationMemory(repository, **config.get("memory", {}))
 

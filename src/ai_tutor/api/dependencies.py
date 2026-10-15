@@ -18,9 +18,9 @@ def current_user(request: Request, authorization: Optional[str] = Header(default
         raise HTTPException(status_code=401, detail=str(exc)) from exc
 
 
-def researcher(request: Request, authorization: Optional[str] = Header(default=None)):
+def admin(request: Request, authorization: Optional[str] = Header(default=None)):
     try:
-        return request.app.state.service.session(_token(authorization), "researcher")
+        return request.app.state.service.session(_token(authorization), "admin")
     except PermissionError as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from exc
 

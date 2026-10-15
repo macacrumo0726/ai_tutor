@@ -2,7 +2,7 @@ export type Session = {
   token: string;
   user_id: string;
   display_name: string;
-  role: "student" | "researcher";
+  role: "student" | "admin";
   authenticated: boolean;
 };
 

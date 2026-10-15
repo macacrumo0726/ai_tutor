@@ -6,7 +6,7 @@ from ai_tutor.memory import AuthenticationService, ConversationRepository, Learn
 @pytest.fixture
 def services(tmp_path):
     repository = ConversationRepository(tmp_path / "research.sqlite3")
-    return repository, AuthenticationService(repository, researcher_ids="researcher"), LearningProfileService(repository)
+    return repository, AuthenticationService(repository, admin_ids="admin"), LearningProfileService(repository)
 
 
 def test_registration_hashes_pin_and_login_creates_session(services):
@@ -21,13 +21,13 @@ def test_registration_hashes_pin_and_login_creates_session(services):
         auth.login("student_01", "0000")
 
 
-def test_roles_are_allowlisted_and_researcher_guard_is_enforced(services):
+def test_roles_are_allowlisted_and_admin_guard_is_enforced(services):
     _, auth, _ = services
     student = auth.register("student", "Student", "1234")
-    researcher = auth.register("researcher", "Researcher", "1234")
-    assert auth.require(researcher, "researcher")["role"] == "researcher"
+    administrator = auth.register("admin", "Administrator", "1234")
+    assert auth.require(administrator, "admin")["role"] == "admin"
     with pytest.raises(PermissionError):
-        auth.require(student, "researcher")
+        auth.require(student, "admin")
 
 
 def test_explicit_feedback_updates_mastery_and_preserves_evidence(services):

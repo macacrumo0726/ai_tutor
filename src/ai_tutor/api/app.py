@@ -10,7 +10,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 
-from .dependencies import current_user, protocol_user, researcher
+from .dependencies import admin, current_user, protocol_user
 from .schemas import AvatarPayload, ChatRequest, ConversationCreate, FeedbackRequest, LoginRequest, ProtocolAcceptanceRequest, RegisterRequest
 from .services import TutorApplicationService
 
@@ -174,7 +174,7 @@ def create_app(service: Optional[TutorApplicationService] = None) -> FastAPI:
         return StreamingResponse(generate(), media_type="text/event-stream")
 
     @app.get("/api/admin/overview")
-    def admin_overview(request: Request, identity=Depends(researcher)):
+    def admin_overview(request: Request, identity=Depends(admin)):
         service = request.app.state.service
         users = service.repository.list_users()
         return {
@@ -185,11 +185,11 @@ def create_app(service: Optional[TutorApplicationService] = None) -> FastAPI:
         }
 
     @app.get("/api/admin/users")
-    def admin_users(request: Request, identity=Depends(researcher)):
+    def admin_users(request: Request, identity=Depends(admin)):
         return request.app.state.service.repository.list_users()
 
     @app.get("/api/admin/users/{user_id}")
-    def admin_user(user_id: str, request: Request, identity=Depends(researcher)):
+    def admin_user(user_id: str, request: Request, identity=Depends(admin)):
         service = request.app.state.service
         user = service.repository.get_user(user_id)
         if not user:

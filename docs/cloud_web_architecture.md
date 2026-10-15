@@ -50,9 +50,9 @@ aceptación de cada usuario sin modificarlo.
 
 ### Experiencia de investigación
 
-La ruta `/admin` requiere el rol `researcher`. Presenta estado del servicio,
+La ruta `/admin` requiere el rol `admin`. Presenta estado del servicio,
 usuarios seudónimos, conversaciones y perfil de dominio. El rol se asigna antes
-del registro mediante `AI_TUTOR_RESEARCHER_IDS`; el cliente no puede elevar sus
+del registro mediante `AI_TUTOR_ADMIN_IDS`; el cliente no puede elevar sus
 propios permisos.
 
 ### Persistencia y seguridad

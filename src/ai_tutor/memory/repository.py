@@ -38,6 +38,7 @@ class ConversationRepository:
                 password_salt TEXT NOT NULL DEFAULT '',
                 role TEXT NOT NULL DEFAULT 'student'
             );
+            UPDATE users SET role='admin' WHERE role='researcher';
             CREATE TABLE IF NOT EXISTS avatars (
                 user_id TEXT PRIMARY KEY REFERENCES users(user_id) ON DELETE CASCADE,
                 style TEXT NOT NULL DEFAULT 'orbit',
@@ -207,7 +208,7 @@ class ConversationRepository:
     def set_credentials(self, user_id: str, display_name: str, password_hash: str,
                         password_salt: str, role: str = "student"):
         user_id = self.normalize_user_id(user_id)
-        if role not in {"student", "researcher"}:
+        if role not in {"student", "admin"}:
             raise ValueError("Invalid role")
         with self._connect() as db:
             existing = db.execute("SELECT password_hash FROM users WHERE user_id=?", (user_id,)).fetchone()

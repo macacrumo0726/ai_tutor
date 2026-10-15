@@ -115,28 +115,28 @@ def test_stream_returns_sse_events(tmp_path, monkeypatch):
     assert "event: done" in response.text
 
 
-def test_research_routes_require_researcher(tmp_path, monkeypatch):
-    monkeypatch.setenv("AI_TUTOR_RESEARCHER_IDS", "researcher")
+def test_admin_routes_require_admin(tmp_path, monkeypatch):
+    monkeypatch.setenv("AI_TUTOR_ADMIN_IDS", "admin_user")
     client, _ = _client(tmp_path, monkeypatch)
     student = _register(client)
-    researcher = _register(client, "researcher", "Researcher")
+    administrator = _register(client, "admin_user", "Administrator")
     student_headers = {"Authorization": f"Bearer {student['token']}"}
-    research_headers = {"Authorization": f"Bearer {researcher['token']}"}
+    admin_headers = {"Authorization": f"Bearer {administrator['token']}"}
     assert client.get("/api/admin/overview", headers=student_headers).status_code == 403
-    assert client.get("/api/admin/overview", headers=research_headers).status_code == 200
+    assert client.get("/api/admin/overview", headers=admin_headers).status_code == 200
 
 
-def test_researcher_can_review_persisted_conversation_messages(tmp_path, monkeypatch):
-    monkeypatch.setenv("AI_TUTOR_RESEARCHER_IDS", "researcher")
+def test_admin_can_review_persisted_conversation_messages(tmp_path, monkeypatch):
+    monkeypatch.setenv("AI_TUTOR_ADMIN_IDS", "admin_user")
     client, service = _client(tmp_path, monkeypatch)
     _register(client, "student", "Student")
-    researcher = _register(client, "researcher", "Researcher")
+    administrator = _register(client, "admin_user", "Administrator")
     conversation = service.memory.create("student", title="Dominio")
     service.memory.record_turn("student", conversation.conversation_id, "¿Qué es el dominio?", "Son las entradas permitidas.")
 
     response = client.get(
         "/api/admin/users/student",
-        headers={"Authorization": f"Bearer {researcher['token']}"},
+        headers={"Authorization": f"Bearer {administrator['token']}"},
     )
 
     assert response.status_code == 200

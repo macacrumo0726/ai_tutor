@@ -159,7 +159,7 @@ export default function TutorPage() {
           </div>)}
         </nav>
         <div className="sidebar-footer">
-          {me?.role === "researcher" && <button onClick={() => router.push("/admin")}><BookOpen size={17}/> Vista de investigación</button>}
+        {me?.role === "admin" && <button onClick={() => router.push("/admin")}><BookOpen size={17}/> Vista de investigación</button>}
           <button onClick={logout}><LogOut size={17}/> Cerrar sesión</button>
         </div>
       </aside>

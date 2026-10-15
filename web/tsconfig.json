@@ -37,6 +37,7 @@
   ],
   "exclude": [
     "node_modules",
-    ".next/dev/types/**/* 2.ts"
+    ".next/dev/types/**/*.ts",
+    ".next/types/**/* 2.ts"
   ]
 }
