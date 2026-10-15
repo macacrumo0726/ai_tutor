@@ -22,3 +22,17 @@ def test_linear_denominator_accepts_correct_answer_and_handles_plus():
 def test_unsupported_micro_check_remains_unscored():
     assert verify_short_math_response("8", "¿Cuál es el rango de la función?") is None
     assert verify_short_math_response("no sé", "Para 1/(x - 5), ¿qué valor se excluye?") is None
+
+
+def test_symbolic_common_factor_micro_check_accepts_variable():
+    prompt = "Si tuvieras la expresión y² + 3y, ¿cuál es la letra o factor que se repite?"
+    result = verify_short_math_response("y", prompt)
+    assert result["status"] == "correct"
+    assert result["expected_symbol"] == "y"
+
+
+def test_symbolic_common_factor_micro_check_rejects_wrong_variable():
+    prompt = "En la expresión y² + 3y, ¿qué factor se repite en ambos términos?"
+    result = verify_short_math_response("x", prompt)
+    assert result["status"] == "incorrect"
+    assert result["expected_symbol"] == "y"

@@ -171,12 +171,14 @@ class TutorApplicationService:
         conversation_context = prepared["conversation_context"]
         if verification:
             verdict = "CORRECTA" if verification["status"] == "correct" else "INCORRECTA"
+            expected = verification.get("expected_value", verification.get("expected_symbol", ""))
             conversation_context += (
                 "\n\nVerificación matemática determinista del turno actual: "
                 f"la respuesta {message!r} es {verdict}. "
-                f"Valor esperado: {verification['expected_value']:g}. "
+                f"Valor o símbolo esperado: {expected}. "
                 f"Regla: {verification['explanation']}. "
-                "Respeta esta verificación; no felicites una respuesta incorrecta."
+                "Respeta esta verificación; reconoce una respuesta correcta y continúa el ejercicio. "
+                "No reinicies la conversación como un saludo. No felicites una respuesta incorrecta."
             )
         elif previous_tutor and "?" in previous_tutor.content and len(message.strip()) <= 40:
             conversation_context += (
@@ -234,7 +236,7 @@ class TutorApplicationService:
             "response_verification": verification or {"status": "not_available"},
         }
         answer = _student_text(response.answer)
-        if verification and verification["status"] == "incorrect":
+        if verification and verification["status"] == "incorrect" and verification.get("kind", "").startswith("numeric"):
             student_value = verification["student_value"]
             expected_value = verification["expected_value"]
             answer = (
@@ -243,6 +245,18 @@ class TutorApplicationService:
                 f"resolvemos {verification['explanation']}. Por eso el valor correcto es "
                 f"x = {expected_value:g}, no {student_value:g}. "
                 "¿Puedes comprobarlo sustituyendo ese valor en el denominador?"
+            )
+        elif verification and verification["status"] == "incorrect" and verification.get("kind") == "symbolic_common_factor_v1":
+            answer = (
+                f"Casi: la letra que se repite en ambos términos es {verification['expected_symbol']}. "
+                f"En la expresión mencionada, {verification['expected_symbol']}² + 3{verification['expected_symbol']}, "
+                f"el factor común es {verification['expected_symbol']}. ¿Puedes identificar ahora qué queda dentro del paréntesis?"
+            )
+        elif verification and verification["status"] == "correct" and verification.get("kind") == "symbolic_common_factor_v1":
+            answer = (
+                f"Sí, correcto: {verification['expected_symbol']} es el factor común porque aparece en los dos términos. "
+                f"Al extraerlo, la expresión queda {verification['expected_symbol']}({verification['expected_symbol']} + 3). "
+                "¿Qué observas dentro del paréntesis?"
             )
             metadata["answer_guardrail_used"] = True
         else:
