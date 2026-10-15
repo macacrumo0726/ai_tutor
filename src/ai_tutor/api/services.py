@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import re
 import time
+import hashlib
 from dataclasses import asdict
 from threading import Lock
 from typing import Optional
@@ -61,6 +62,58 @@ class TutorApplicationService:
         self.allow_fallback = _bool_env("AI_TUTOR_ALLOW_MODEL_FALLBACK", True)
         self._tutors: dict[str, Tutor] = {}
         self._tutor_lock = Lock()
+        self.protocol_pdf = project_path("data/protocol/Proyecto_doctoral_manejo_etico_de_datos.pdf")
+        self.protocol_version = self._protocol_version()
+
+    def _protocol_version(self):
+        if not self.protocol_pdf.exists():
+            return "2026-10-15-unavailable"
+        digest = hashlib.sha256(self.protocol_pdf.read_bytes()).hexdigest()[:12]
+        return f"2026-10-15-{digest}"
+
+    def protocol_summary(self):
+        return {
+            "title": "Protocolo de manejo ético de datos",
+            "version": self.protocol_version,
+            "summary": (
+                "El protocolo explica qué datos se recogerán en la investigación, cómo se obtendrán, "
+                "cómo se almacenarán y quién podrá acceder a ellos. La participación es voluntaria; "
+                "los registros se asocian a códigos seudónimos, se minimizan los datos y se aplican "
+                "controles de seguridad, acceso por roles, revisión de conversaciones y retención limitada."
+            ),
+            "sections": [
+                "Datos cuantitativos, cualitativos, técnicos y de caracterización amplia.",
+                "Recolección posterior al aval ético y al consentimiento informado.",
+                "Almacenamiento institucional con cifrado, respaldos y control de acceso.",
+                "Acceso restringido al equipo autorizado y bajo mínimo privilegio.",
+                "Conservación prevista de datos seudonimizados durante cinco años, salvo decisión ética o institucional distinta.",
+                "Mitigación mediante minimización, seudonimización, auditoría y divulgación agregada.",
+            ],
+            "pdf_url": "/api/protocol/document",
+        }
+
+    def protocol_status(self, user_id: str):
+        acceptance = self.repository.get_protocol_acceptance(user_id, self.protocol_version)
+        latest = self.repository.get_protocol_acceptance(user_id)
+        return {
+            "current_version": self.protocol_version,
+            "accepted_current": bool(acceptance and acceptance["accepted"]),
+            "acceptance": acceptance,
+            "latest_acceptance": latest,
+        }
+
+    def accept_protocol(self, user_id: str, version: str, accepted: bool):
+        if version != self.protocol_version:
+            raise ValueError("La versión del protocolo ya no está vigente")
+        if not accepted:
+            raise ValueError("Debes aceptar el protocolo para continuar")
+        return self.repository.save_protocol_acceptance(user_id, version, accepted)
+
+    def require_protocol(self, identity: dict):
+        status = self.protocol_status(identity["user_id"])
+        if not status["accepted_current"]:
+            raise PermissionError("Debes aceptar el protocolo de datos vigente antes de continuar")
+        return identity
 
     def session(self, token: str, role: Optional[str] = None):
         return self.auth.require({"token": token}, role)

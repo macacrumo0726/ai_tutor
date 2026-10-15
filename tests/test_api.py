@@ -17,12 +17,19 @@ def _client(tmp_path, monkeypatch):
     return TestClient(create_app(service)), service
 
 
-def _register(client, user_id="student", display_name="Student", pin="1234"):
+def _register(client, user_id="student", display_name="Student", pin="1234", accept=True):
     response = client.post("/api/auth/register", json={
         "user_id": user_id, "display_name": display_name, "pin": pin,
     })
     assert response.status_code == 200
-    return response.json()
+    session = response.json()
+    if accept:
+        protocol = client.get("/api/protocol").json()
+        accepted = client.post("/api/me/protocol/accept", headers={"Authorization": f"Bearer {session['token']}"}, json={
+            "protocol_version": protocol["version"], "accepted": True,
+        })
+        assert accepted.status_code == 200
+    return session
 
 
 def test_student_flow_is_authenticated_and_isolated(tmp_path, monkeypatch):
@@ -41,6 +48,45 @@ def test_student_flow_is_authenticated_and_isolated(tmp_path, monkeypatch):
     assert client.get("/api/conversations", headers=second_headers).json() == []
     assert client.get(f"/api/conversations/{created['conversation_id']}", headers=second_headers).status_code == 404
     assert client.get("/api/conversations").status_code == 401
+
+
+def test_protocol_blocks_student_until_current_version_is_accepted(tmp_path, monkeypatch):
+    client, _ = _client(tmp_path, monkeypatch)
+    session = _register(client, accept=False)
+    headers = {"Authorization": f"Bearer {session['token']}"}
+    assert client.get("/api/me/protocol", headers=headers).json()["accepted_current"] is False
+    assert client.get("/api/conversations", headers=headers).status_code == 428
+    assert client.post("/api/conversations", headers=headers, json={}).status_code == 428
+    protocol = client.get("/api/protocol").json()
+    accepted = client.post("/api/me/protocol/accept", headers=headers, json={
+        "protocol_version": protocol["version"], "accepted": True,
+    })
+    assert accepted.status_code == 200
+    assert client.get("/api/conversations", headers=headers).status_code == 200
+
+
+def test_protocol_document_is_available_before_acceptance(tmp_path, monkeypatch):
+    client, _ = _client(tmp_path, monkeypatch)
+    response = client.get("/api/protocol/document")
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("application/pdf")
+    assert response.content.startswith(b"%PDF")
+
+
+def test_protocol_rejects_old_version_and_records_utc_acceptance(tmp_path, monkeypatch):
+    client, _ = _client(tmp_path, monkeypatch)
+    session = _register(client, accept=False)
+    headers = {"Authorization": f"Bearer {session['token']}"}
+    rejected = client.post("/api/me/protocol/accept", headers=headers, json={
+        "protocol_version": "2020-old", "accepted": True,
+    })
+    assert rejected.status_code == 409
+    protocol = client.get("/api/protocol").json()
+    accepted = client.post("/api/me/protocol/accept", headers=headers, json={
+        "protocol_version": protocol["version"], "accepted": True,
+    }).json()
+    assert accepted["acceptance"]["accepted"] == 1
+    assert accepted["acceptance"]["accepted_at_utc"].endswith("+00:00")
 
 
 def test_avatar_roundtrip(tmp_path, monkeypatch):

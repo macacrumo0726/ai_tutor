@@ -23,3 +23,11 @@ def researcher(request: Request, authorization: Optional[str] = Header(default=N
         return request.app.state.service.session(_token(authorization), "researcher")
     except PermissionError as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from exc
+
+
+def protocol_user(request: Request, authorization: Optional[str] = Header(default=None)):
+    identity = current_user(request, authorization)
+    try:
+        return request.app.state.service.require_protocol(identity)
+    except PermissionError as exc:
+        raise HTTPException(status_code=428, detail=str(exc)) from exc

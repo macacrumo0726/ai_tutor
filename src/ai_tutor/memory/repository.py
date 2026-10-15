@@ -47,6 +47,16 @@ class ConversationRepository:
                 background TEXT NOT NULL DEFAULT 'violet',
                 updated_at TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS protocol_acceptances (
+                acceptance_id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+                protocol_version TEXT NOT NULL,
+                accepted INTEGER NOT NULL CHECK(accepted IN (0, 1)),
+                accepted_at_utc TEXT NOT NULL,
+                UNIQUE(user_id, protocol_version)
+            );
+            CREATE INDEX IF NOT EXISTS idx_protocol_acceptances_user_date
+                ON protocol_acceptances(user_id, accepted_at_utc DESC);
             CREATE TABLE IF NOT EXISTS conversations (
                 conversation_id TEXT PRIMARY KEY,
                 user_id TEXT NOT NULL REFERENCES users(user_id),
@@ -237,6 +247,39 @@ class ConversationRepository:
                 avatar["accessory"], avatar["background"], _now(),
             ))
         return self.get_avatar(user_id)
+
+    def save_protocol_acceptance(self, user_id: str, protocol_version: str, accepted: bool = True):
+        user_id = self.ensure_user(user_id)
+        timestamp = _now()
+        acceptance_id = f"protocol_{uuid.uuid4().hex}"
+        with self._connect() as db:
+            db.execute(
+                """INSERT INTO protocol_acceptances
+                (acceptance_id,user_id,protocol_version,accepted,accepted_at_utc)
+                VALUES(?,?,?,?,?)
+                ON CONFLICT(user_id,protocol_version) DO UPDATE SET
+                accepted=excluded.accepted,accepted_at_utc=excluded.accepted_at_utc""",
+                (acceptance_id, user_id, protocol_version, int(accepted), timestamp),
+            )
+            row = db.execute(
+                """SELECT acceptance_id,user_id,protocol_version,accepted,accepted_at_utc
+                FROM protocol_acceptances WHERE user_id=? AND protocol_version=?""",
+                (user_id, protocol_version),
+            ).fetchone()
+        return dict(row)
+
+    def get_protocol_acceptance(self, user_id: str, protocol_version: Optional[str] = None):
+        user_id = self.normalize_user_id(user_id)
+        query = """SELECT acceptance_id,user_id,protocol_version,accepted,accepted_at_utc
+                   FROM protocol_acceptances WHERE user_id=?"""
+        params = [user_id]
+        if protocol_version is not None:
+            query += " AND protocol_version=?"
+            params.append(protocol_version)
+        query += " ORDER BY accepted_at_utc DESC LIMIT 1"
+        with self._connect() as db:
+            row = db.execute(query, params).fetchone()
+        return dict(row) if row else None
 
     def get_mastery(self, user_id: str):
         user_id = self.normalize_user_id(user_id)

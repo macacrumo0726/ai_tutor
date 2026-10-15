@@ -28,6 +28,25 @@ FastAPI (auth, tutor, memoria, perfiles, feedback)
   consulta.
 - Avatar configurable sin fotografías ni datos biométricos.
 - Auto-reporte de comprensión separado de la evaluación heurística.
+- Pantalla obligatoria de protocolo antes del tutor: resumen, PDF completo,
+  casilla explícita y aceptación versionada.
+
+### Protocolo de datos y control de acceso
+
+El original DOCX se conserva en `data/protocol/Proyecto_doctoral_manejo_etico_de_datos.docx`
+y su copia PDF integrada en
+`data/protocol/Proyecto_doctoral_manejo_etico_de_datos.pdf`. La versión activa
+se calcula como `2026-10-15-<sha256-del-PDF>`. La tabla
+`protocol_acceptances` (creada también por `migrations/001_protocol_acceptances.sql`)
+registra `user_id`, versión, aceptación y `accepted_at_utc`.
+
+El frontend redirige a `/protocol` después del login o registro. El backend
+aplica la misma regla con una dependencia de autorización: `/api/me/avatar`,
+`/api/me/progress`, conversaciones, feedback y chat devuelven HTTP 428 si la
+aceptación de la versión activa no existe. `/api/protocol` y el PDF son públicos
+para poder leerlos antes de aceptar; `/api/me/protocol` permite revisar el
+estado después de aceptar. La vista `/admin` puede consultar el estado de
+aceptación de cada usuario sin modificarlo.
 
 ### Experiencia de investigación
 

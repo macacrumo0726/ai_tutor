@@ -8,10 +8,10 @@ from typing import Optional
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 
-from .dependencies import current_user, researcher
-from .schemas import AvatarPayload, ChatRequest, ConversationCreate, FeedbackRequest, LoginRequest, RegisterRequest
+from .dependencies import current_user, protocol_user, researcher
+from .schemas import AvatarPayload, ChatRequest, ConversationCreate, FeedbackRequest, LoginRequest, ProtocolAcceptanceRequest, RegisterRequest
 from .services import TutorApplicationService
 
 
@@ -47,6 +47,17 @@ def create_app(service: Optional[TutorApplicationService] = None) -> FastAPI:
     def health():
         return {"status": "ok", "service": "precalculus-tutor-api"}
 
+    @app.get("/api/protocol")
+    def protocol(request: Request):
+        return request.app.state.service.protocol_summary()
+
+    @app.get("/api/protocol/document")
+    def protocol_document(request: Request):
+        path = request.app.state.service.protocol_pdf
+        if not path.exists():
+            raise HTTPException(status_code=503, detail="El protocolo PDF no está disponible")
+        return FileResponse(path, media_type="application/pdf", filename=path.name)
+
     @app.post("/api/auth/register")
     def register(payload: RegisterRequest, request: Request):
         try:
@@ -69,27 +80,43 @@ def create_app(service: Optional[TutorApplicationService] = None) -> FastAPI:
     @app.get("/api/me")
     def me(request: Request, identity=Depends(current_user)):
         repository = request.app.state.service.repository
-        return {**identity, "avatar": repository.get_avatar(identity["user_id"])}
+        service = request.app.state.service
+        return {**identity, "avatar": repository.get_avatar(identity["user_id"]), "protocol": service.protocol_status(identity["user_id"])}
+
+    @app.get("/api/me/protocol")
+    def my_protocol(request: Request, identity=Depends(current_user)):
+        return request.app.state.service.protocol_status(identity["user_id"])
+
+    @app.post("/api/me/protocol/accept")
+    def accept_protocol(payload: ProtocolAcceptanceRequest, request: Request, identity=Depends(current_user)):
+        try:
+            acceptance = request.app.state.service.accept_protocol(
+                identity["user_id"], payload.protocol_version, payload.accepted,
+            )
+            return {"accepted": True, "acceptance": acceptance,
+                    **request.app.state.service.protocol_status(identity["user_id"])}
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
 
     @app.get("/api/me/avatar")
-    def avatar(request: Request, identity=Depends(current_user)):
+    def avatar(request: Request, identity=Depends(protocol_user)):
         return request.app.state.service.repository.get_avatar(identity["user_id"])
 
     @app.put("/api/me/avatar")
-    def update_avatar(payload: AvatarPayload, request: Request, identity=Depends(current_user)):
+    def update_avatar(payload: AvatarPayload, request: Request, identity=Depends(protocol_user)):
         return request.app.state.service.repository.upsert_avatar(identity["user_id"], **payload.model_dump())
 
     @app.get("/api/me/progress")
-    def progress(request: Request, identity=Depends(current_user)):
+    def progress(request: Request, identity=Depends(protocol_user)):
         return request.app.state.service.repository.learning_report(identity["user_id"])
 
     @app.get("/api/conversations")
-    def conversations(request: Request, identity=Depends(current_user)):
+    def conversations(request: Request, identity=Depends(protocol_user)):
         service = request.app.state.service
         return [service.conversation_payload(item) for item in service.repository.list_conversations(identity["user_id"])]
 
     @app.post("/api/conversations")
-    def create_conversation(payload: ConversationCreate, request: Request, identity=Depends(current_user)):
+    def create_conversation(payload: ConversationCreate, request: Request, identity=Depends(protocol_user)):
         service = request.app.state.service
         conversation = service.memory.create(
             identity["user_id"],
@@ -101,7 +128,7 @@ def create_app(service: Optional[TutorApplicationService] = None) -> FastAPI:
         return service.conversation_payload(conversation)
 
     @app.get("/api/conversations/{conversation_id}")
-    def conversation(conversation_id: str, request: Request, identity=Depends(current_user)):
+    def conversation(conversation_id: str, request: Request, identity=Depends(protocol_user)):
         service = request.app.state.service
         try:
             item = service.repository.get_conversation(identity["user_id"], conversation_id, with_messages=True)
@@ -110,7 +137,7 @@ def create_app(service: Optional[TutorApplicationService] = None) -> FastAPI:
             raise HTTPException(status_code=404, detail="Conversación no encontrada") from exc
 
     @app.delete("/api/conversations/{conversation_id}")
-    def archive_conversation(conversation_id: str, request: Request, identity=Depends(current_user)):
+    def archive_conversation(conversation_id: str, request: Request, identity=Depends(protocol_user)):
         try:
             request.app.state.service.repository.archive_conversation(identity["user_id"], conversation_id)
             return {"ok": True}
@@ -118,14 +145,14 @@ def create_app(service: Optional[TutorApplicationService] = None) -> FastAPI:
             raise HTTPException(status_code=404, detail="Conversación no encontrada") from exc
 
     @app.post("/api/conversations/{conversation_id}/feedback")
-    def feedback(conversation_id: str, payload: FeedbackRequest, request: Request, identity=Depends(current_user)):
+    def feedback(conversation_id: str, payload: FeedbackRequest, request: Request, identity=Depends(protocol_user)):
         try:
             return request.app.state.service.feedback(identity, conversation_id, payload.concept_ids, payload.signal)
         except (KeyError, ValueError) as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     @app.post("/api/conversations/{conversation_id}/messages/stream")
-    async def chat_stream(conversation_id: str, payload: ChatRequest, request: Request, identity=Depends(current_user)):
+    async def chat_stream(conversation_id: str, payload: ChatRequest, request: Request, identity=Depends(protocol_user)):
         service = request.app.state.service
         try:
             service.repository.get_conversation(identity["user_id"], conversation_id)
@@ -171,6 +198,7 @@ def create_app(service: Optional[TutorApplicationService] = None) -> FastAPI:
         return {
             "user": {key: value for key, value in user.items() if key not in {"password_hash", "password_salt"}},
             "avatar": service.repository.get_avatar(user_id),
+            "protocol": service.protocol_status(user_id),
             "profile": service.repository.learning_report(user_id),
             "conversations": [
                 service.conversation_payload(

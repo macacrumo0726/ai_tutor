@@ -45,6 +45,11 @@ class FeedbackRequest(BaseModel):
     concept_ids: list[str] = Field(default_factory=list)
 
 
+class ProtocolAcceptanceRequest(BaseModel):
+    protocol_version: str = Field(min_length=1, max_length=100)
+    accepted: bool
+
+
 class AdminExperimentSettings(BaseModel):
     provider: Optional[str] = None
     retrieval_method: Optional[str] = None

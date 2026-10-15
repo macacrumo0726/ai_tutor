@@ -74,6 +74,15 @@ investigación y requiere un ID incluido en `AI_TUTOR_RESEARCHER_IDS` antes del
 registro. Consulte [la arquitectura web](docs/cloud_web_architecture.md) para
 conocer límites actuales y decisiones pendientes de Azure.
 
+Antes de entrar al tutor, cada cuenta debe leer y aceptar el protocolo de datos
+en `/protocol`. La aplicación muestra el resumen y el PDF completo, mantiene el
+botón de aceptación deshabilitado hasta marcar la casilla y bloquea desde el
+backend el chat, actividades y perfil mientras no exista una aceptación vigente.
+La versión se identifica con un hash del PDF; si cambia el documento se exige
+una nueva aceptación. El registro persistido contiene el seudónimo, versión,
+aceptación y fecha/hora UTC. El protocolo y su registro también pueden
+consultarse desde el perfil del estudiante.
+
 El chatbot guarda memoria local en `data/app/ai_tutor.sqlite3`. La interfaz
 incluye registro/inicio de sesión seudónimo con PIN, conversaciones aisladas por
 usuario, historial y continuidad de respuestas breves. Los PIN se almacenan como

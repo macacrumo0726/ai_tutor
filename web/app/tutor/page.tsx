@@ -2,14 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, ArrowUp, BookOpen, ChevronRight, LogOut, Menu, MessageCirclePlus, Palette, Sigma, Sparkles, X } from "lucide-react";
+import { Archive, ArrowUp, BookOpen, ChevronRight, FileText, LogOut, Menu, MessageCirclePlus, Palette, Sigma, Sparkles, X } from "lucide-react";
 import { Avatar, AvatarConfig, defaultAvatar } from "@/components/Avatar";
 import { api, streamChat } from "@/lib/api";
 import { clearSession, getSession, Session } from "@/lib/auth";
 
 type Conversation = { conversation_id: string; title: string; updated_at: string; messages?: Message[] };
 type Message = { message_id?: string; role: "user" | "assistant"; content: string; metadata?: Record<string, unknown> };
-type Me = Session & { avatar: AvatarConfig };
+type Me = Session & { avatar: AvatarConfig; protocol: { accepted_current: boolean } };
 
 const prompts = [
   "¿Cómo encuentro el dominio de una función racional?",
@@ -63,6 +63,7 @@ export default function TutorPage() {
     if (!getSession()) { router.replace("/"); return; }
     Promise.all([api<Me>("/api/me"), api<Conversation[]>("/api/conversations")])
       .then(async ([identity, list]) => {
+        if (!identity.protocol?.accepted_current) { router.replace("/protocol"); return; }
         setMe(identity); setAvatar(identity.avatar || defaultAvatar); setConversations(list);
         if (list.length) await loadConversation(list[0].conversation_id); else await createConversation();
       })
@@ -205,6 +206,7 @@ export default function TutorPage() {
         <AvatarOptions label="Tono" values={["sunny", "honey", "cocoa", "moon"]} current={avatar.skin_tone} onChange={skin_tone => setAvatar({ ...avatar, skin_tone })}/>
         <AvatarOptions label="Cabello" values={["waves", "curls", "short"]} current={avatar.hair} onChange={hair => setAvatar({ ...avatar, hair })}/>
         <AvatarOptions label="Detalle" values={["stars", "orbit", "glasses", "none"]} current={avatar.accessory} onChange={accessory => setAvatar({ ...avatar, accessory })}/>
+        <button className="secondary-action" onClick={() => router.push("/protocol?review=1")}><FileText size={18}/> Consultar protocolo de datos</button>
         <button className="primary-button" onClick={saveAvatar}><Palette size={18}/> Guardar mi avatar</button>
       </section></div>}
     </main>

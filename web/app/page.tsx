@@ -27,7 +27,7 @@ export default function LoginPage() {
       });
       const body = await response.json();
       if (!response.ok) throw new Error(body.detail || "No fue posible iniciar sesión");
-      saveSession(body); router.push("/tutor");
+      saveSession(body); router.push("/protocol");
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Error inesperado"); }
     finally { setBusy(false); }
   }
