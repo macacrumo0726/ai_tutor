@@ -36,12 +36,22 @@ SOCIAL_PATTERNS = {
     "goodbye": re.compile(r"^\s*(?:adiós|adios|chao|hasta luego|nos vemos)\s*[.!?]*\s*$", re.IGNORECASE),
 }
 
+OPEN_QUESTION_PATTERN = re.compile(
+    r"^\s*[¿?]?(?:qué|que)\s+(?:me\s+)?puedes\s+(?:explicar|enseñar)(?:me)?\s*[?!.]*\s*$",
+    re.IGNORECASE,
+)
+
 
 def _social_intent(message: str) -> Optional[str]:
     for intent, pattern in SOCIAL_PATTERNS.items():
         if pattern.fullmatch(message):
             return intent
     return None
+
+
+def _open_question(message: str) -> bool:
+    """Recognize a topic-free request before sending it to retrieval."""
+    return bool(OPEN_QUESTION_PATTERN.fullmatch(message or ""))
 
 
 class TutorApplicationService:
@@ -158,6 +168,31 @@ class TutorApplicationService:
                 "requested_provider": self.default_provider,
             }
             answer = answers[social_intent]
+            self.memory.record_turn(user_id, conversation_id, message, answer, metadata)
+            return {"answer": answer, "metadata": metadata}
+
+        if _open_question(message):
+            started = time.perf_counter()
+            first_name = identity.get("display_name", "").strip().split(" ")[0] or "estudiante"
+            answer = (
+                f"Puedo ayudarte con Precálculo, {first_name}. "
+                "Podemos trabajar álgebra, funciones, ecuaciones, trigonometría, "
+                "dominio, gráficas o cualquier ejercicio paso a paso. "
+                "¿Qué tema o problema quieres revisar?"
+            )
+            metadata = {
+                "intent": "open_question",
+                "retrieval_method": "none",
+                "model_provider": "conversation_router",
+                "student_profile": f"persistent:{user_id}",
+                "retrieval_query": message,
+                "chunks": [],
+                "concepts": [],
+                "latency_ms": round((time.perf_counter() - started) * 1000, 2),
+                "effective_model": "deterministic-conversation-router-v1",
+                "fallback_used": False,
+                "requested_provider": self.default_provider,
+            }
             self.memory.record_turn(user_id, conversation_id, message, answer, metadata)
             return {"answer": answer, "metadata": metadata}
 

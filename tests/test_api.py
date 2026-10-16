@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 
 from ai_tutor.api.app import create_app
-from ai_tutor.api.services import TutorApplicationService, _social_intent, _student_text
+from ai_tutor.api.services import TutorApplicationService, _open_question, _social_intent, _student_text
 from ai_tutor.memory import ConversationRepository
 
 
@@ -170,6 +170,18 @@ def test_social_intent_does_not_capture_mathematical_messages():
     assert _social_intent("buenas tardes") == "greeting"
     assert _social_intent("gracias") == "thanks"
     assert _social_intent("Hola, ¿cómo factorizo x² - 5x + 6?") is None
+
+
+def test_open_topic_question_bypasses_retrieval(tmp_path):
+    repository = ConversationRepository(tmp_path / "open-question.sqlite3")
+    service = TutorApplicationService(repository=repository)
+    identity = service.auth.register("student", "Estudiante", "1234")
+    conversation = service.memory.create("student", title="Nueva conversación")
+    result = service.ask(identity, conversation.conversation_id, "¿Qué me puedes explicar?")
+    assert _open_question("que me puedes explicar?")
+    assert result["metadata"]["intent"] == "open_question"
+    assert result["metadata"]["retrieval_method"] == "none"
+    assert "¿Qué tema o problema" in result["answer"]
 
 
 def test_student_text_removes_model_formatting_delimiters():
