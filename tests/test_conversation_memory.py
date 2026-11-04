@@ -26,6 +26,18 @@ def test_short_answer_is_contextualized_for_retrieval(memory):
     assert "f(x)=1/(x-3)" in prepared["retrieval_query"]
     assert "x = 3" in prepared["retrieval_query"]
     assert "Últimos turnos" in prepared["conversation_context"]
+    assert "assistant:" not in prepared["retrieval_query"]
+
+
+def test_topic_switch_updates_active_problem_for_follow_up_retrieval(memory):
+    conversation = memory.create("student")
+    memory.record_turn("student", conversation.conversation_id,
+                       "Ayúdame a factorizar x² - 5x + 6", "Empecemos buscando dos números.")
+    memory.record_turn("student", conversation.conversation_id,
+                       "¿Cómo encuentro el dominio de una función racional?", "Revisemos el denominador.")
+    prepared = memory.prepare("student", conversation.conversation_id, "¿y ahora qué reviso?")
+    assert "dominio de una función racional" in prepared["retrieval_query"]
+    assert "factorizar x²" not in prepared["retrieval_query"]
 
 
 def test_long_conversation_creates_summary_and_active_problem(memory):

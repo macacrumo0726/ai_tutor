@@ -50,10 +50,60 @@ python app/chatbot.py
 
 La UI permite elegir `rag`, `graph_rag`, `pep_sa_rag` o `pep_plan_rag` y activar el modo de investigación. Todas las condiciones usan exactamente `prompts/precalculus_tutor.txt`.
 
+### Nueva aplicación web
+
+La experiencia preparada para evolucionar hacia nube está separada de Gradio:
+
+```bash
+pip install -e '.[web]'
+python scripts/run_api.py
+```
+
+En otra terminal:
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+Visite `http://localhost:3000`. La interfaz de estudiante ofrece login,
+conversaciones persistentes, respuesta progresiva, avatar y progreso sin exponer
+la arquitectura experimental. La ruta `/admin` concentra las funciones de
+investigación y requiere un ID incluido en `AI_TUTOR_ADMIN_IDS` antes del
+registro. Consulte [la arquitectura web](docs/cloud_web_architecture.md) para
+conocer límites actuales y decisiones pendientes de Azure.
+
+### Imagen y despliegue cloud
+
+La imagen de API prepara automáticamente los artefactos runtime y declara
+`pep_plan_rag` como retrieval predeterminado de PEP-Plan-RAG v3. Para probar la
+composición local:
+
+```bash
+docker compose build
+docker compose up
+```
+
+Para Azure Container Apps use [la plantilla Bicep](infra/azure/main.bicep) y
+su [guía de despliegue](infra/azure/README.md). La primera instalación usa una
+réplica de API y Azure Files porque SQLite todavía no es una base distribuida;
+PostgreSQL es requisito antes de escalar.
+
+Antes de entrar al tutor, cada cuenta debe leer y aceptar el protocolo de datos
+en `/protocol`. La aplicación muestra el resumen y el PDF completo, mantiene el
+botón de aceptación deshabilitado hasta marcar la casilla y bloquea desde el
+backend el chat, actividades y perfil mientras no exista una aceptación vigente.
+La versión se identifica con un hash del PDF; si cambia el documento se exige
+una nueva aceptación. El registro persistido contiene el seudónimo, versión,
+aceptación y fecha/hora UTC. El protocolo y su registro también pueden
+consultarse desde el perfil del estudiante.
+
 El chatbot guarda memoria local en `data/app/ai_tutor.sqlite3`. La interfaz
 incluye registro/inicio de sesión seudónimo con PIN, conversaciones aisladas por
-usuario, historial y continuidad de respuestas breves. Los PIN se almacenan como
-PBKDF2-HMAC-SHA256 con sal aleatoria, nunca como texto. El archivo SQLite está
+usuario, historial y continuidad de respuestas breves. Los PIN se transforman
+en una huella protegida mediante PBKDF2-HMAC-SHA256 y nunca se guardan como
+texto. El archivo SQLite está
 ignorado por Git y no debe contener nombres ni datos personales reales.
 
 PEP-Plan-RAG v3 carga automáticamente el perfil longitudinal del usuario antes
@@ -71,7 +121,7 @@ anterior/nuevo. Además, el sistema detecta autorreportes conversacionales como
 se registra como evidencia no calificada, pero no cambia dominio hasta poder
 verificar si es correcta. Para
 habilitar una cuenta investigadora, incluya previamente su ID seudónimo en
-`AI_TUTOR_RESEARCHER_IDS` dentro de `.env`; ese rol puede consultar perfiles e
+`AI_TUTOR_ADMIN_IDS` dentro de `.env`; ese rol puede consultar perfiles e
 historiales desde la pestaña **Investigación**.
 
 Para recrear las cuentas locales de demostración de forma idempotente:

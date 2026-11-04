@@ -11,13 +11,18 @@ def needs_context(message: str) -> bool:
     return len(words) <= 7 or bool(REFERENCE_TERMS.search(message)) or bool(SHORT_ANSWER.match(message))
 
 
-def contextualize(message: str, previous_messages) -> str:
+def contextualize(message: str, previous_messages, active_problem: str = "") -> str:
     """Create a standalone retrieval query without calling another LLM."""
     if not previous_messages or not needs_context(message):
         return message
-    recent = previous_messages[-4:]
-    context = "\n".join(f"{item.role}: {item.content}" for item in recent)
-    return f"Contexto de la conversación:\n{context}\nMensaje actual del estudiante: {message}"
+    # Use a compact topical anchor instead of the full assistant transcript.
+    # Long pedagogical answers contain unrelated textbook terms and can move a
+    # short follow-up to the wrong retrieval topic.
+    anchor = active_problem.strip()
+    if not anchor:
+        user_messages = [item.content.strip() for item in previous_messages if item.role == "user" and item.content.strip()]
+        anchor = user_messages[-1] if user_messages else ""
+    return f"Problema activo: {anchor}\nRespuesta o referencia actual del estudiante: {message}" if anchor else message
 
 
 def format_history(summary: str, active_problem: str, messages, max_messages=8) -> str:

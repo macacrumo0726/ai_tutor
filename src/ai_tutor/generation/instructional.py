@@ -7,10 +7,14 @@ class InstructionalGenerator:
     """Readable deterministic fallback; never pretends to be an LLM."""
     def generate(self,prompt:str)->GenerationResult:
         start=perf_counter()
-        question=self._field(prompt,"Pregunta del estudiante:","<evidence>")
+        # Stop at the next prompt field; otherwise context and safety rules
+        # were echoed in the student's micro-check.
+        question=self._field(prompt,"Pregunta del estudiante:","Contexto de la conversación:")
+        if not question:
+            question=self._field(prompt,"Pregunta del estudiante:","<evidence>")
         evidence=self._field(prompt,"<evidence>","</evidence>")
         concepts=self._field(prompt,"Conceptos recuperados:","Prerrequisitos detectados:")
-        prereqs=prompt.split("Prerrequisitos detectados:",1)[-1].strip()
+        prereqs=self._field(prompt,"Prerrequisitos detectados:","Plan tutorial sugerido por el recuperador:")
         sentences=self._clean_sentences(evidence,question)
         idea=sentences[0] if sentences else "La evidencia disponible no contiene una explicación suficientemente clara."
         concept=(concepts.split(",")[0].strip() if concepts.strip() else "este tema")

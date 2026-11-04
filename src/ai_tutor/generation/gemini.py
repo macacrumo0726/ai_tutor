@@ -3,7 +3,7 @@ from time import perf_counter
 from .base import GenerationResult
 class GeminiGenerator:
     def __init__(self,model="gemini-3.6-flash",timeout_ms=30000,
-                 fallback_model="gemini-2.5-flash-lite"):
+                 fallback_model="gemini-3.5-flash-lite"):
         self.model=model
         self.fallback_model=fallback_model
         self.timeout_ms=int(timeout_ms)
@@ -13,7 +13,8 @@ class GeminiGenerator:
     def _is_temporary(error):
         message=str(error).lower()
         return any(marker in message for marker in (
-            "503", "unavailable", "high demand", "timed out", "timeout",
+            "429", "500", "502", "503", "504", "unavailable", "resource exhausted",
+            "rate limit", "high demand", "overloaded", "timed out", "timeout",
             "read operation timed out", "temporarily overloaded"))
 
     def generate(self,prompt):

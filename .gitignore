@@ -19,3 +19,8 @@ data/processed/*.jsonl
 notebooks/pep_sa_rag_precalculus_notebook_local_fixed.ipynb
 data/app/*.sqlite3
 data/app/*.sqlite3-*
+web/node_modules/
+web/.next/
+web/out/
+web/.env*.local
+web/*.tsbuildinfo

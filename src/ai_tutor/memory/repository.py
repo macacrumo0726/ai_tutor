@@ -1,5 +1,6 @@
 from __future__ import annotations
 import json
+import hashlib
 import sqlite3
 import uuid
 from datetime import datetime, timezone
@@ -38,6 +39,36 @@ class ConversationRepository:
                 password_salt TEXT NOT NULL DEFAULT '',
                 role TEXT NOT NULL DEFAULT 'student'
             );
+            UPDATE users SET role='admin' WHERE role='researcher';
+            CREATE TABLE IF NOT EXISTS sessions (
+                session_id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+                token_hash TEXT NOT NULL UNIQUE,
+                created_at TEXT NOT NULL,
+                expires_at TEXT NOT NULL,
+                revoked INTEGER NOT NULL DEFAULT 0
+            );
+            CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token_hash, revoked, expires_at);
+            CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id, expires_at);
+            CREATE TABLE IF NOT EXISTS avatars (
+                user_id TEXT PRIMARY KEY REFERENCES users(user_id) ON DELETE CASCADE,
+                style TEXT NOT NULL DEFAULT 'orbit',
+                skin_tone TEXT NOT NULL DEFAULT 'sunny',
+                hair TEXT NOT NULL DEFAULT 'waves',
+                accessory TEXT NOT NULL DEFAULT 'stars',
+                background TEXT NOT NULL DEFAULT 'violet',
+                updated_at TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS protocol_acceptances (
+                acceptance_id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+                protocol_version TEXT NOT NULL,
+                accepted INTEGER NOT NULL CHECK(accepted IN (0, 1)),
+                accepted_at_utc TEXT NOT NULL,
+                UNIQUE(user_id, protocol_version)
+            );
+            CREATE INDEX IF NOT EXISTS idx_protocol_acceptances_user_date
+                ON protocol_acceptances(user_id, accepted_at_utc DESC);
             CREATE TABLE IF NOT EXISTS conversations (
                 conversation_id TEXT PRIMARY KEY,
                 user_id TEXT NOT NULL REFERENCES users(user_id),
@@ -188,7 +219,7 @@ class ConversationRepository:
     def set_credentials(self, user_id: str, display_name: str, password_hash: str,
                         password_salt: str, role: str = "student"):
         user_id = self.normalize_user_id(user_id)
-        if role not in {"student", "researcher"}:
+        if role not in {"student", "admin"}:
             raise ValueError("Invalid role")
         with self._connect() as db:
             existing = db.execute("SELECT password_hash FROM users WHERE user_id=?", (user_id,)).fetchone()
@@ -206,6 +237,95 @@ class ConversationRepository:
         with self._connect() as db:
             return [dict(row) for row in db.execute(
                 "SELECT user_id,display_name,role,created_at FROM users ORDER BY created_at DESC").fetchall()]
+
+    def create_session(self, user_id: str, token: str, expires_at: str, created_at: Optional[str] = None):
+        user_id = self.normalize_user_id(user_id)
+        created_at = created_at or _now()
+        token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+        session_id = f"session_{uuid.uuid4().hex}"
+        with self._connect() as db:
+            db.execute(
+                "INSERT INTO sessions(session_id,user_id,token_hash,created_at,expires_at,revoked) VALUES(?,?,?,?,?,0)",
+                (session_id, user_id, token_hash, created_at, expires_at),
+            )
+        return session_id
+
+    def get_session(self, token: str):
+        token_hash = hashlib.sha256((token or "").encode("utf-8")).hexdigest()
+        now = _now()
+        with self._connect() as db:
+            row = db.execute(
+                """SELECT s.session_id,s.user_id,s.created_at,s.expires_at,
+                          u.display_name,u.role
+                   FROM sessions s JOIN users u ON u.user_id=s.user_id
+                   WHERE s.token_hash=? AND s.revoked=0 AND s.expires_at>?""",
+                (token_hash, now),
+            ).fetchone()
+        return dict(row) if row else None
+
+    def revoke_session(self, token: str):
+        token_hash = hashlib.sha256((token or "").encode("utf-8")).hexdigest()
+        with self._connect() as db:
+            db.execute("UPDATE sessions SET revoked=1 WHERE token_hash=?", (token_hash,))
+
+    def purge_expired_sessions(self):
+        with self._connect() as db:
+            db.execute("DELETE FROM sessions WHERE expires_at<=? OR revoked=1", (_now(),))
+
+    def get_avatar(self, user_id: str):
+        user_id = self.ensure_user(user_id)
+        with self._connect() as db:
+            db.execute("INSERT OR IGNORE INTO avatars(user_id,updated_at) VALUES(?,?)", (user_id, _now()))
+            row = db.execute("SELECT * FROM avatars WHERE user_id=?", (user_id,)).fetchone()
+        return dict(row)
+
+    def upsert_avatar(self, user_id: str, **values):
+        user_id = self.ensure_user(user_id)
+        allowed = {"style", "skin_tone", "hair", "accessory", "background"}
+        avatar = self.get_avatar(user_id)
+        avatar.update({key: str(value)[:40] for key, value in values.items() if key in allowed})
+        with self._connect() as db:
+            db.execute("""INSERT INTO avatars(user_id,style,skin_tone,hair,accessory,background,updated_at)
+                VALUES(?,?,?,?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET
+                style=excluded.style,skin_tone=excluded.skin_tone,hair=excluded.hair,
+                accessory=excluded.accessory,background=excluded.background,updated_at=excluded.updated_at""", (
+                user_id, avatar["style"], avatar["skin_tone"], avatar["hair"],
+                avatar["accessory"], avatar["background"], _now(),
+            ))
+        return self.get_avatar(user_id)
+
+    def save_protocol_acceptance(self, user_id: str, protocol_version: str, accepted: bool = True):
+        user_id = self.ensure_user(user_id)
+        timestamp = _now()
+        acceptance_id = f"protocol_{uuid.uuid4().hex}"
+        with self._connect() as db:
+            db.execute(
+                """INSERT INTO protocol_acceptances
+                (acceptance_id,user_id,protocol_version,accepted,accepted_at_utc)
+                VALUES(?,?,?,?,?)
+                ON CONFLICT(user_id,protocol_version) DO UPDATE SET
+                accepted=excluded.accepted,accepted_at_utc=excluded.accepted_at_utc""",
+                (acceptance_id, user_id, protocol_version, int(accepted), timestamp),
+            )
+            row = db.execute(
+                """SELECT acceptance_id,user_id,protocol_version,accepted,accepted_at_utc
+                FROM protocol_acceptances WHERE user_id=? AND protocol_version=?""",
+                (user_id, protocol_version),
+            ).fetchone()
+        return dict(row)
+
+    def get_protocol_acceptance(self, user_id: str, protocol_version: Optional[str] = None):
+        user_id = self.normalize_user_id(user_id)
+        query = """SELECT acceptance_id,user_id,protocol_version,accepted,accepted_at_utc
+                   FROM protocol_acceptances WHERE user_id=?"""
+        params = [user_id]
+        if protocol_version is not None:
+            query += " AND protocol_version=?"
+            params.append(protocol_version)
+        query += " ORDER BY accepted_at_utc DESC LIMIT 1"
+        with self._connect() as db:
+            row = db.execute(query, params).fetchone()
+        return dict(row) if row else None
 
     def get_mastery(self, user_id: str):
         user_id = self.normalize_user_id(user_id)
@@ -425,6 +545,9 @@ class ConversationRepository:
         with self._connect() as db:
             db.execute(f"UPDATE conversations SET {assignment} WHERE conversation_id=?", [*updates.values(), conversation_id])
         return self.get_conversation(user_id, conversation_id)
+
+    def archive_conversation(self, user_id: str, conversation_id: str):
+        return self.update_conversation(user_id, conversation_id, archived=True)
 
     @staticmethod
     def _conversation(row) -> Conversation:
