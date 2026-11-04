@@ -14,15 +14,42 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+class _PostgresConnection:
+    """Small adapter that keeps the repository SQL portable across backends."""
+
+    def __init__(self, connection):
+        self._connection = connection
+
+    def __enter__(self):
+        self._connection.__enter__()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        return self._connection.__exit__(exc_type, exc_value, traceback)
+
+    def execute(self, query, params=()):
+        return self._connection.execute(query.replace("?", "%s"), params)
+
+
 class ConversationRepository:
-    """Small SQLite repository with explicit user/conversation isolation."""
+    """Repository with SQLite locally and PostgreSQL for cloud deployments."""
 
     def __init__(self, database_path):
-        self.database_path = Path(database_path)
-        self.database_path.parent.mkdir(parents=True, exist_ok=True)
+        value = str(database_path)
+        self.database_url = value if value.startswith(("postgres://", "postgresql://")) else ""
+        self.database_path = None if self.database_url else Path(database_path)
+        if self.database_path:
+            self.database_path.parent.mkdir(parents=True, exist_ok=True)
         self._initialize()
 
     def _connect(self):
+        if self.database_url:
+            try:
+                import psycopg
+                from psycopg.rows import dict_row
+            except ImportError as exc:
+                raise RuntimeError("PostgreSQL requiere instalar la dependencia opcional 'postgres'") from exc
+            return _PostgresConnection(psycopg.connect(self.database_url, row_factory=dict_row))
         connection = sqlite3.connect(str(self.database_path), timeout=10)
         connection.row_factory = sqlite3.Row
         connection.execute("PRAGMA foreign_keys = ON")
@@ -30,7 +57,7 @@ class ConversationRepository:
 
     def _initialize(self):
         with self._connect() as db:
-            db.executescript("""
+            schema = """
             CREATE TABLE IF NOT EXISTS users (
                 user_id TEXT PRIMARY KEY,
                 display_name TEXT NOT NULL,
@@ -190,9 +217,21 @@ class ConversationRepository:
                 ON student_self_reports(user_id, created_at DESC);
             CREATE INDEX IF NOT EXISTS idx_understanding_user_created
                 ON understanding_evaluations(user_id, created_at DESC);
-            """)
+            """
+            if self.database_url:
+                for statement in schema.split(";"):
+                    statement = statement.strip()
+                    if statement:
+                        db.execute(statement)
+            else:
+                db.executescript(schema)
             # Safe migrations for databases created by earlier versions.
-            columns = {row["name"] for row in db.execute("PRAGMA table_info(users)")}
+            if self.database_url:
+                columns = {row["column_name"] for row in db.execute(
+                    "SELECT column_name FROM information_schema.columns WHERE table_name='users'"
+                ).fetchall()}
+            else:
+                columns = {row["name"] for row in db.execute("PRAGMA table_info(users)")}
             for name, definition in (
                 ("password_hash", "TEXT NOT NULL DEFAULT ''"),
                 ("password_salt", "TEXT NOT NULL DEFAULT ''"),
@@ -205,7 +244,7 @@ class ConversationRepository:
         user_id = self.normalize_user_id(user_id)
         with self._connect() as db:
             db.execute(
-                "INSERT OR IGNORE INTO users(user_id,display_name,created_at) VALUES(?,?,?)",
+                "INSERT INTO users(user_id,display_name,created_at) VALUES(?,?,?) ON CONFLICT(user_id) DO NOTHING",
                 (user_id, display_name or user_id, _now()),
             )
         return user_id
@@ -230,7 +269,7 @@ class ConversationRepository:
                 display_name=excluded.display_name,password_hash=excluded.password_hash,
                 password_salt=excluded.password_salt,role=excluded.role""",
                 (user_id, display_name.strip()[:100] or user_id, _now(), password_hash, password_salt, role))
-            db.execute("INSERT OR IGNORE INTO student_profiles(user_id,updated_at) VALUES(?,?)", (user_id, _now()))
+            db.execute("INSERT INTO student_profiles(user_id,updated_at) VALUES(?,?) ON CONFLICT(user_id) DO NOTHING", (user_id, _now()))
         return self.get_user(user_id)
 
     def list_users(self):
@@ -275,7 +314,7 @@ class ConversationRepository:
     def get_avatar(self, user_id: str):
         user_id = self.ensure_user(user_id)
         with self._connect() as db:
-            db.execute("INSERT OR IGNORE INTO avatars(user_id,updated_at) VALUES(?,?)", (user_id, _now()))
+            db.execute("INSERT INTO avatars(user_id,updated_at) VALUES(?,?) ON CONFLICT(user_id) DO NOTHING", (user_id, _now()))
             row = db.execute("SELECT * FROM avatars WHERE user_id=?", (user_id,)).fetchone()
         return dict(row)
 
@@ -337,7 +376,7 @@ class ConversationRepository:
         user_id = self.normalize_user_id(user_id)
         self.ensure_user(user_id)
         with self._connect() as db:
-            db.execute("INSERT OR IGNORE INTO student_profiles(user_id,updated_at) VALUES(?,?)", (user_id, _now()))
+            db.execute("INSERT INTO student_profiles(user_id,updated_at) VALUES(?,?) ON CONFLICT(user_id) DO NOTHING", (user_id, _now()))
             row = db.execute("SELECT * FROM student_profiles WHERE user_id=?", (user_id,)).fetchone()
         return dict(row)
 
@@ -404,7 +443,7 @@ class ConversationRepository:
 
     def save_micro_check(self,payload):
         with self._connect() as db:
-            db.execute("INSERT OR IGNORE INTO micro_checks VALUES(?,?,?,?)",(
+            db.execute("INSERT INTO micro_checks VALUES(?,?,?,?) ON CONFLICT DO NOTHING",(
                 payload["micro_check_id"],payload["concept_id"],json.dumps(payload,ensure_ascii=False),_now()))
 
     def next_attempt_number(self,user_id,micro_check_id):

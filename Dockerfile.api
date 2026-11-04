@@ -15,7 +15,7 @@ COPY data/instructional ./data/instructional
 COPY data/processed ./data/processed
 COPY data/artifacts ./data/artifacts
 COPY data/protocol ./data/protocol
-RUN pip install --upgrade pip && pip install ".[web,providers]"
+RUN pip install --upgrade pip && pip install ".[web,providers,postgres]"
 RUN python scripts/prepare_runtime_artifacts.py
 
 EXPOSE 8000

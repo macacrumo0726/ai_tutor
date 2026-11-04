@@ -59,7 +59,8 @@ class TutorApplicationService:
 
     def __init__(self, repository=None):
         config = load_config()
-        database_path = project_path(config["paths"]["conversations"])
+        database_url = os.getenv("AI_TUTOR_DATABASE_URL", "").strip()
+        database_path = database_url or project_path(config["paths"]["conversations"])
         self.repository = repository or ConversationRepository(database_path)
         self.memory = ConversationMemory(self.repository, **config.get("memory", {}))
         self.auth = AuthenticationService(self.repository)

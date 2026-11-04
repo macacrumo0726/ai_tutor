@@ -87,8 +87,10 @@ docker compose up
 
 Para Azure Container Apps use [la plantilla Bicep](infra/azure/main.bicep) y
 su [guía de despliegue](infra/azure/README.md). La primera instalación usa una
-réplica de API y Azure Files porque SQLite todavía no es una base distribuida;
-PostgreSQL es requisito antes de escalar.
+réplica de API y Azure Files porque SQLite todavía no es una base distribuida.
+Para producción y varias réplicas, define `AI_TUTOR_DATABASE_URL` con una
+conexión PostgreSQL y usa `scripts/migrate_sqlite_to_postgres.py` para trasladar
+los datos existentes.
 
 Antes de entrar al tutor, cada cuenta debe leer y aceptar el protocolo de datos
 en `/protocol`. La aplicación muestra el resumen y el PDF completo, mantiene el
@@ -99,7 +101,8 @@ una nueva aceptación. El registro persistido contiene el seudónimo, versión,
 aceptación y fecha/hora UTC. El protocolo y su registro también pueden
 consultarse desde el perfil del estudiante.
 
-El chatbot guarda memoria local en `data/app/ai_tutor.sqlite3`. La interfaz
+El chatbot guarda memoria local en `data/app/ai_tutor.sqlite3` cuando no se
+define `AI_TUTOR_DATABASE_URL`; con PostgreSQL usa la base remota. La interfaz
 incluye registro/inicio de sesión seudónimo con PIN, conversaciones aisladas por
 usuario, historial y continuidad de respuestas breves. Los PIN se transforman
 en una huella protegida mediante PBKDF2-HMAC-SHA256 y nunca se guardan como

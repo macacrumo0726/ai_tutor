@@ -14,6 +14,9 @@ param adminIds string = ''
 @description('Gemini API key. Keep this in a deployment secret or Azure Key Vault pipeline.')
 param geminiApiKey string = ''
 @secure()
+@description('PostgreSQL connection string. Set this for production persistence.')
+param databaseUrl string = ''
+@secure()
 param registryUsername string = ''
 @secure()
 param registryPassword string = ''
@@ -96,6 +99,7 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
       }
       secrets: [
         { name: 'gemini-api-key'; value: geminiApiKey }
+        { name: 'database-url'; value: databaseUrl }
         { name: 'registry-password'; value: registryPassword }
       ]
       registries: empty(registryServer) ? [] : [
@@ -119,6 +123,7 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'AI_TUTOR_DEFAULT_RETRIEVAL'; value: 'pep_plan_rag' }
             { name: 'AI_TUTOR_ADMIN_IDS'; value: adminIds }
             { name: 'GEMINI_API_KEY'; secretRef: 'gemini-api-key' }
+            { name: 'AI_TUTOR_DATABASE_URL'; secretRef: 'database-url' }
           ]
           volumeMounts: [{ volumeName: 'tutor-data'; mountPath: '/app/data/app' }]
         }
