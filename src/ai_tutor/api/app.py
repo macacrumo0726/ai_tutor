@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
+import time
+from threading import Lock
 from contextlib import asynccontextmanager
 from typing import Optional
 
@@ -13,6 +16,34 @@ from fastapi.responses import FileResponse, StreamingResponse
 from .dependencies import admin, current_user, protocol_user
 from .schemas import AvatarPayload, ChatRequest, ConversationCreate, FeedbackRequest, LoginRequest, ProtocolAcceptanceRequest, RegisterRequest
 from .services import TutorApplicationService
+
+logger = logging.getLogger("ai_tutor.api")
+
+
+class _WindowLimiter:
+    """Small per-process abuse guard for auth endpoints.
+
+    Azure can add a distributed gateway limit later; this local guard still
+    prevents accidental login/register floods on a single replica.
+    """
+    def __init__(self, limit: int = 20, window_seconds: int = 60):
+        self.limit = limit
+        self.window_seconds = window_seconds
+        self._entries: dict[str, list[float]] = {}
+        self._lock = Lock()
+
+    def allow(self, key: str) -> bool:
+        now = time.monotonic()
+        with self._lock:
+            values = [item for item in self._entries.get(key, []) if now - item < self.window_seconds]
+            if len(values) >= self.limit:
+                self._entries[key] = values
+                return False
+            values.append(now)
+            self._entries[key] = values
+            if len(self._entries) > 5000:
+                self._entries = {name: items for name, items in self._entries.items() if items}
+            return True
 
 
 def _event(event: str, data) -> str:
@@ -29,23 +60,54 @@ def create_app(service: Optional[TutorApplicationService] = None) -> FastAPI:
         version="0.2.0",
         description="API para la experiencia estudiantil y la investigación del tutor.",
         lifespan=lifespan,
+        docs_url=None if os.getenv("AI_TUTOR_ENV", "development").lower() == "production" else "/docs",
+        redoc_url=None if os.getenv("AI_TUTOR_ENV", "development").lower() == "production" else "/redoc",
     )
     # Set the dependency eagerly so the app also works with TestClient usages
     # that do not enter its context manager. The same instance is then kept
     # throughout the ASGI lifespan.
     app.state.service = service or TutorApplicationService()
-    origins = [item.strip() for item in os.getenv("AI_TUTOR_CORS_ORIGINS", "http://localhost:3000").split(",")]
+    app.state.auth_limiter = _WindowLimiter(limit=int(os.getenv("AI_TUTOR_AUTH_RATE_LIMIT", "20")))
+    origins = [item.strip() for item in os.getenv("AI_TUTOR_CORS_ORIGINS", "http://localhost:3000").split(",") if item.strip()]
+    if not origins or "*" in origins:
+        raise RuntimeError("AI_TUTOR_CORS_ORIGINS debe contener orígenes explícitos; no se permite '*'")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type"],
     )
+
+    @app.middleware("http")
+    async def security_headers(request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        if os.getenv("AI_TUTOR_ENV", "development").lower() == "production":
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        return response
 
     @app.get("/api/health")
     def health():
         return {"status": "ok", "service": "precalculus-tutor-api"}
+
+    @app.get("/api/ready")
+    def ready(request: Request):
+        service = request.app.state.service
+        required = {
+            "protocol_pdf": service.protocol_pdf,
+            "chunks": service.project_paths["chunks"],
+            "concepts": service.project_paths["concepts"],
+            "graph": service.project_paths["graph"],
+            "indexes": service.project_paths["indexes"],
+        }
+        missing = [name for name, path in required.items() if not path.exists()]
+        if missing:
+            raise HTTPException(status_code=503, detail={"status": "not_ready", "missing": missing})
+        return {"status": "ready", "retrieval": service.default_retrieval, "pep_version": "v3"}
 
     @app.get("/api/protocol")
     def protocol(request: Request):
@@ -60,6 +122,8 @@ def create_app(service: Optional[TutorApplicationService] = None) -> FastAPI:
 
     @app.post("/api/auth/register")
     def register(payload: RegisterRequest, request: Request):
+        if not request.app.state.auth_limiter.allow(f"register:{request.client.host if request.client else 'unknown'}"):
+            raise HTTPException(status_code=429, detail="Demasiados intentos. Espera un momento y vuelve a intentarlo.")
         try:
             return request.app.state.service.auth.register(payload.user_id, payload.display_name, payload.pin)
         except ValueError as exc:
@@ -67,6 +131,8 @@ def create_app(service: Optional[TutorApplicationService] = None) -> FastAPI:
 
     @app.post("/api/auth/login")
     def login(payload: LoginRequest, request: Request):
+        if not request.app.state.auth_limiter.allow(f"login:{request.client.host if request.client else 'unknown'}"):
+            raise HTTPException(status_code=429, detail="Demasiados intentos. Espera un momento y vuelve a intentarlo.")
         try:
             return request.app.state.service.auth.login(payload.user_id, payload.pin)
         except ValueError as exc:
@@ -169,9 +235,14 @@ def create_app(service: Optional[TutorApplicationService] = None) -> FastAPI:
                     await asyncio.sleep(0.015)
                 yield _event("done", result["metadata"])
             except Exception as exc:
-                yield _event("error", {"message": str(exc)})
+                logger.exception("chat_stream_failed", extra={"conversation_id": conversation_id})
+                yield _event("error", {"message": "No fue posible completar la respuesta. Intenta de nuevo."})
 
-        return StreamingResponse(generate(), media_type="text/event-stream")
+        return StreamingResponse(
+            generate(),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"},
+        )
 
     @app.get("/api/admin/overview")
     def admin_overview(request: Request, identity=Depends(admin)):
@@ -181,6 +252,7 @@ def create_app(service: Optional[TutorApplicationService] = None) -> FastAPI:
             "users": len(users),
             "provider": service.default_provider,
             "retrieval_method": service.default_retrieval,
+            "pep_version": "v3" if service.default_retrieval == "pep_plan_rag" else "not_v3",
             "fallback_enabled": service.allow_fallback,
         }
 

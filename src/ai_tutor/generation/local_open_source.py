@@ -10,7 +10,7 @@ class LocalOpenSourceGenerator:
         start=perf_counter()
         try:
             from openai import OpenAI
-            client=OpenAI(base_url=self.base_url,api_key=os.getenv("LOCAL_LLM_API_KEY","ollama"))
+            client=OpenAI(base_url=self.base_url,api_key=os.getenv("LOCAL_LLM_API_KEY","ollama"), timeout=float(os.getenv("AI_TUTOR_PROVIDER_TIMEOUT_SECONDS", "30")))
             response=client.chat.completions.create(model=self.model,messages=[{"role":"user","content":prompt}],temperature=0)
             text=response.choices[0].message.content or ""
             return GenerationResult(text,"local_open_source",self.model,(perf_counter()-start)*1000)

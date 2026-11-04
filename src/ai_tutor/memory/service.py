@@ -75,6 +75,12 @@ class ConversationMemory:
 
     @staticmethod
     def _active_problem(question):
-        if any(symbol in question for symbol in ("=", "√", "/", "²", "^", "f(")):
+        topic_terms = re.search(
+            r"\b(?:ecuaci[oó]n(?:es)?|funci[oó]n(?:es)?|dominio|rango|factoriz|polinom|trigonom|desigualdad|logarit|exponente|radical|par[aá]bola|sistema lineal|pendiente)\b",
+            question,
+            re.IGNORECASE,
+        )
+        words = re.findall(r"\w+", question, re.UNICODE)
+        if any(symbol in question for symbol in ("=", "√", "/", "²", "^", "f(")) or (topic_terms and len(words) >= 4):
             return re.sub(r"\s+", " ", question).strip()[:500]
         return ""

@@ -74,6 +74,22 @@ investigación y requiere un ID incluido en `AI_TUTOR_ADMIN_IDS` antes del
 registro. Consulte [la arquitectura web](docs/cloud_web_architecture.md) para
 conocer límites actuales y decisiones pendientes de Azure.
 
+### Imagen y despliegue cloud
+
+La imagen de API prepara automáticamente los artefactos runtime y declara
+`pep_plan_rag` como retrieval predeterminado de PEP-Plan-RAG v3. Para probar la
+composición local:
+
+```bash
+docker compose build
+docker compose up
+```
+
+Para Azure Container Apps use [la plantilla Bicep](infra/azure/main.bicep) y
+su [guía de despliegue](infra/azure/README.md). La primera instalación usa una
+réplica de API y Azure Files porque SQLite todavía no es una base distribuida;
+PostgreSQL es requisito antes de escalar.
+
 Antes de entrar al tutor, cada cuenta debe leer y aceptar el protocolo de datos
 en `/protocol`. La aplicación muestra el resumen y el PDF completo, mantiene el
 botón de aceptación deshabilitado hasta marcar la casilla y bloquea desde el
@@ -85,8 +101,9 @@ consultarse desde el perfil del estudiante.
 
 El chatbot guarda memoria local en `data/app/ai_tutor.sqlite3`. La interfaz
 incluye registro/inicio de sesión seudónimo con PIN, conversaciones aisladas por
-usuario, historial y continuidad de respuestas breves. Los PIN se almacenan como
-PBKDF2-HMAC-SHA256 con sal aleatoria, nunca como texto. El archivo SQLite está
+usuario, historial y continuidad de respuestas breves. Los PIN se transforman
+en una huella protegida mediante PBKDF2-HMAC-SHA256 y nunca se guardan como
+texto. El archivo SQLite está
 ignorado por Git y no debe contener nombres ni datos personales reales.
 
 PEP-Plan-RAG v3 carga automáticamente el perfil longitudinal del usuario antes

@@ -60,6 +60,16 @@ def test_logout_invalidates_session(services):
         auth.require(session)
 
 
+def test_session_survives_auth_service_restart(services):
+    repository, auth, _ = services
+    session = auth.register("persistent_student", "Student", "1234")
+    restarted = AuthenticationService(repository, admin_ids="admin")
+    assert restarted.require(session)["user_id"] == "persistent_student"
+    restarted.logout(session)
+    with pytest.raises(PermissionError):
+        auth.require(session)
+
+
 def test_conversation_confusion_updates_profile_with_lower_weight(services):
     repository, auth, learning = services
     auth.register("student", "Student", "1234")

@@ -1,5 +1,6 @@
 from __future__ import annotations
 import json
+import hashlib
 import sqlite3
 import uuid
 from datetime import datetime, timezone
@@ -39,6 +40,16 @@ class ConversationRepository:
                 role TEXT NOT NULL DEFAULT 'student'
             );
             UPDATE users SET role='admin' WHERE role='researcher';
+            CREATE TABLE IF NOT EXISTS sessions (
+                session_id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+                token_hash TEXT NOT NULL UNIQUE,
+                created_at TEXT NOT NULL,
+                expires_at TEXT NOT NULL,
+                revoked INTEGER NOT NULL DEFAULT 0
+            );
+            CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token_hash, revoked, expires_at);
+            CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id, expires_at);
             CREATE TABLE IF NOT EXISTS avatars (
                 user_id TEXT PRIMARY KEY REFERENCES users(user_id) ON DELETE CASCADE,
                 style TEXT NOT NULL DEFAULT 'orbit',
@@ -226,6 +237,40 @@ class ConversationRepository:
         with self._connect() as db:
             return [dict(row) for row in db.execute(
                 "SELECT user_id,display_name,role,created_at FROM users ORDER BY created_at DESC").fetchall()]
+
+    def create_session(self, user_id: str, token: str, expires_at: str, created_at: Optional[str] = None):
+        user_id = self.normalize_user_id(user_id)
+        created_at = created_at or _now()
+        token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+        session_id = f"session_{uuid.uuid4().hex}"
+        with self._connect() as db:
+            db.execute(
+                "INSERT INTO sessions(session_id,user_id,token_hash,created_at,expires_at,revoked) VALUES(?,?,?,?,?,0)",
+                (session_id, user_id, token_hash, created_at, expires_at),
+            )
+        return session_id
+
+    def get_session(self, token: str):
+        token_hash = hashlib.sha256((token or "").encode("utf-8")).hexdigest()
+        now = _now()
+        with self._connect() as db:
+            row = db.execute(
+                """SELECT s.session_id,s.user_id,s.created_at,s.expires_at,
+                          u.display_name,u.role
+                   FROM sessions s JOIN users u ON u.user_id=s.user_id
+                   WHERE s.token_hash=? AND s.revoked=0 AND s.expires_at>?""",
+                (token_hash, now),
+            ).fetchone()
+        return dict(row) if row else None
+
+    def revoke_session(self, token: str):
+        token_hash = hashlib.sha256((token or "").encode("utf-8")).hexdigest()
+        with self._connect() as db:
+            db.execute("UPDATE sessions SET revoked=1 WHERE token_hash=?", (token_hash,))
+
+    def purge_expired_sessions(self):
+        with self._connect() as db:
+            db.execute("DELETE FROM sessions WHERE expires_at<=? OR revoked=1", (_now(),))
 
     def get_avatar(self, user_id: str):
         user_id = self.ensure_user(user_id)

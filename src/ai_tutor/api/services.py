@@ -69,11 +69,15 @@ class TutorApplicationService:
         self.concept_labels = {item["concept_id"]: item.get("concept_name", item["concept_id"]) for item in concepts}
         self.default_provider = os.getenv("AI_TUTOR_DEFAULT_PROVIDER", "gemini")
         self.default_retrieval = os.getenv("AI_TUTOR_DEFAULT_RETRIEVAL", "pep_plan_rag")
+        if os.getenv("AI_TUTOR_ENV", "development").lower() == "production" and self.default_retrieval != "pep_plan_rag":
+            raise RuntimeError("La configuración de producción debe usar pep_plan_rag (PEP-Plan-RAG v3)")
         self.allow_fallback = _bool_env("AI_TUTOR_ALLOW_MODEL_FALLBACK", True)
         self._tutors: dict[str, Tutor] = {}
         self._tutor_lock = Lock()
         self.protocol_pdf = project_path("data/protocol/Proyecto_doctoral_manejo_etico_de_datos.pdf")
         self.protocol_version = self._protocol_version()
+        config_paths = load_config().get("paths", {})
+        self.project_paths = {name: project_path(value) for name, value in config_paths.items() if name in {"chunks", "concepts", "graph", "indexes"}}
 
     def _protocol_version(self):
         if not self.protocol_pdf.exists():

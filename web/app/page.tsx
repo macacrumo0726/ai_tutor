@@ -23,6 +23,7 @@ export default function LoginPage() {
     try {
       const response = await fetch(`${API_URL}/api/auth/${mode}`, {
         method: "POST", headers: { "Content-Type": "application/json" },
+        signal: AbortSignal.timeout(30000),
         body: JSON.stringify(mode === "login" ? { user_id: userId, pin } : { user_id: userId, display_name: name, pin }),
       });
       const body = await response.json();

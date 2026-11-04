@@ -7,6 +7,7 @@ services:
     environment:
       AI_TUTOR_API_HOST: 0.0.0.0
       AI_TUTOR_CORS_ORIGINS: http://localhost:3000
+      AI_TUTOR_ENV: development
     ports:
       - "8000:8000"
     volumes:
@@ -15,7 +16,7 @@ services:
     build:
       context: ./web
       args:
-        NEXT_PUBLIC_API_URL: http://localhost:8000
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
     depends_on:
       - api
     ports:

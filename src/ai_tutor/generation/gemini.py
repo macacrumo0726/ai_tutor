@@ -13,7 +13,8 @@ class GeminiGenerator:
     def _is_temporary(error):
         message=str(error).lower()
         return any(marker in message for marker in (
-            "503", "unavailable", "high demand", "timed out", "timeout",
+            "429", "500", "502", "503", "504", "unavailable", "resource exhausted",
+            "rate limit", "high demand", "overloaded", "timed out", "timeout",
             "read operation timed out", "temporarily overloaded"))
 
     def generate(self,prompt):

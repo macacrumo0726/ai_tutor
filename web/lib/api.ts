@@ -1,4 +1,4 @@
-import { getSession } from "./auth";
+import { clearSession, getSession } from "./auth";
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -12,6 +12,11 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
       ...init.headers,
     },
   });
+  if (response.status === 401 && typeof window !== "undefined") {
+    clearSession();
+    window.location.replace("/");
+    throw new Error("Tu sesión expiró. Inicia sesión nuevamente.");
+  }
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
     throw new Error(body.detail || "No fue posible completar la solicitud");
@@ -33,6 +38,11 @@ export async function streamChat(
     },
     body: JSON.stringify({ message }),
   });
+  if (response.status === 401 && typeof window !== "undefined") {
+    clearSession();
+    window.location.replace("/");
+    throw new Error("Tu sesión expiró. Inicia sesión nuevamente.");
+  }
   if (!response.ok || !response.body) throw new Error("No fue posible conectar con el tutor");
   const reader = response.body.getReader();
   const decoder = new TextDecoder();

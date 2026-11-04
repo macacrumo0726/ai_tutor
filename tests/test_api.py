@@ -115,6 +115,33 @@ def test_stream_returns_sse_events(tmp_path, monkeypatch):
     assert "event: done" in response.text
 
 
+def test_stream_does_not_expose_internal_exception(tmp_path):
+    client, service = _client(tmp_path, None)
+    session = _register(client)
+    headers = {"Authorization": f"Bearer {session['token']}"}
+    conversation = client.post("/api/conversations", headers=headers, json={}).json()
+    service.ask = lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("provider secret token"))
+    response = client.post(
+        f"/api/conversations/{conversation['conversation_id']}/messages/stream",
+        headers=headers,
+        json={"message": "¿Qué es una función?"},
+    )
+    assert response.status_code == 200
+    assert "provider secret token" not in response.text
+    assert "No fue posible completar la respuesta" in response.text
+
+
+def test_health_readiness_and_security_headers(tmp_path):
+    client, service = _client(tmp_path, None)
+    health = client.get("/api/health")
+    assert health.status_code == 200
+    assert health.headers["x-content-type-options"] == "nosniff"
+    ready = client.get("/api/ready")
+    assert ready.status_code in {200, 503}
+    if ready.status_code == 200:
+        assert ready.json()["retrieval"] == service.default_retrieval
+
+
 def test_admin_routes_require_admin(tmp_path, monkeypatch):
     monkeypatch.setenv("AI_TUTOR_ADMIN_IDS", "admin_user")
     client, _ = _client(tmp_path, monkeypatch)
