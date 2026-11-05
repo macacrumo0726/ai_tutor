@@ -21,6 +21,22 @@ TABLES = (
 )
 
 
+def _source_row_is_valid(source, table: str, row) -> bool:
+    """Skip legacy orphan rows instead of aborting an otherwise valid migration.
+
+    A couple of early development databases contain messages whose conversation
+    was deleted. PostgreSQL enforces the foreign key that SQLite historically
+    allowed, so those rows cannot be copied safely. They are reported and left
+    in the SQLite backup for auditability.
+    """
+    if table == "messages":
+        return source.execute(
+            "SELECT 1 FROM conversations WHERE conversation_id = ?",
+            (row["conversation_id"],),
+        ).fetchone() is not None
+    return True
+
+
 def migrate(sqlite_path: Path, postgres_url: str) -> dict[str, int]:
     # Initializing the repository creates the complete PostgreSQL schema.
     destination = ConversationRepository(postgres_url)
@@ -42,9 +58,15 @@ def migrate(sqlite_path: Path, postgres_url: str) -> dict[str, int]:
             names = ",".join(columns)
             placeholders = ",".join("%s" for _ in columns)
             statement = f"INSERT INTO {table} ({names}) VALUES ({placeholders}) ON CONFLICT DO NOTHING"
+            skipped = 0
             for row in rows:
+                if not _source_row_is_valid(source, table, row):
+                    skipped += 1
+                    continue
                 target.execute(statement, tuple(row[column] for column in columns))
-            counts[table] = len(rows)
+            counts[table] = len(rows) - skipped
+            if skipped:
+                counts[f"{table}_skipped_orphans"] = skipped
     return counts
 
 
