@@ -714,8 +714,8 @@ class TutorApplicationService:
             next_index = index + 1
             if roots and next_index < len(roots):
                 root = roots[next_index]
-                answer = f"Correcto: al sustituir x = {roots[index]}, el resultado es 0. Ahora comprueba x = {root}: {root}² - 5·{root} + 6. ¿Qué obtienes?"
-                state = {**prior_state, "pending_question": answer, "verification_index": next_index, "next_action": "check_attempt"}
+                answer = f"Correcto: al sustituir x = {roots[index]}, el resultado es 0. ¿Quieres hacer lo mismo con x = {root} para comprobar la otra raíz?"
+                state = {**prior_state, "pending_question": answer, "verification_index": next_index, "next_action": "continue_verification"}
             else:
                 answer = "Correcto: ambas sustituciones dan 0, así que las dos raíces quedan verificadas. ¿Quieres practicar otro ejercicio o prefieres repasar otro concepto?"
                 state = {**prior_state, "current_activity": "review", "pending_question": answer, "expected_response_type": "student_choice", "next_action": "offer_exercise", "last_step_closed": True}

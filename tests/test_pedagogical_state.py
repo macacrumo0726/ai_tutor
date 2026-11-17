@@ -82,8 +82,11 @@ def test_root_verification_advances_after_zero_and_yes(tmp_path):
     second = service.ask(identity, conversation.conversation_id, "0")
     assert second["metadata"]["intent"] == "verification_answer"
     assert "x = 2" in second["answer"]
-    third = service.ask(identity, conversation.conversation_id, "0")
-    assert "ambas sustituciones" in third["answer"].lower()
+    third = service.ask(identity, conversation.conversation_id, "sí")
+    assert third["metadata"]["intent"] == "continue_verification"
+    assert "2²" in third["answer"]
+    fourth = service.ask(identity, conversation.conversation_id, "0")
+    assert "ambas sustituciones" in fourth["answer"].lower()
 
 
 def test_no_to_follow_up_choice_closes_naturally(tmp_path):
@@ -91,6 +94,7 @@ def test_no_to_follow_up_choice_closes_naturally(tmp_path):
     service.ask(identity, conversation.conversation_id, "Ayúdame a factorizar x² - 5x + 6")
     service.ask(identity, conversation.conversation_id, "sí")
     service.ask(identity, conversation.conversation_id, "0")
+    service.ask(identity, conversation.conversation_id, "sí")
     service.ask(identity, conversation.conversation_id, "0")
     result = service.ask(identity, conversation.conversation_id, "no")
     assert result["metadata"]["intent"] == "decline_follow_up"
