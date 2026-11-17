@@ -65,6 +65,15 @@ def test_request_for_another_exercise_returns_an_actual_problem(tmp_path):
     assert "x²" in result["answer"]
 
 
+def test_affirmative_to_root_check_continues_the_requested_action(tmp_path):
+    service, identity, conversation = _service(tmp_path)
+    first = service.ask(identity, conversation.conversation_id, "Ayúdame a factorizar x² - 5x + 6")
+    result = service.ask(identity, conversation.conversation_id, "sí")
+    assert result["metadata"]["intent"] == "continue_verification"
+    assert "sustituye x" in result["answer"].lower()
+    assert "¿quieres practicar" not in result["answer"].lower()
+
+
 def test_student_can_delegate_topic_choice(tmp_path):
     service, identity, conversation = _service(tmp_path)
     service.ask(identity, conversation.conversation_id, "Quiero repasar exponentes enteros")

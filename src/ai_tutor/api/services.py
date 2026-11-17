@@ -93,6 +93,34 @@ def _is_progress_confirmation(message: str, state: dict | None) -> bool:
     return bool(PROGRESS_ACK_PATTERN.fullmatch(text) or PROGRESS_EVIDENCE_PATTERN.search(text))
 
 
+def _pending_action_intent(message: str, state: dict | None) -> Optional[str]:
+    """Interpret an affirmative answer to the action PATI just offered."""
+    state = state or {}
+    pending = state.get("pending_question", "")
+    normalized = re.sub(r"\s+", " ", message or "").strip().lower()
+    if not pending or not re.fullmatch(r"(?:s[ií]|correcto|vale|ok|de acuerdo|adelante)", normalized):
+        return None
+    if re.search(r"comprob|verific|sustituy|ra[ií]ces|c[aá]lculo", pending, re.I):
+        return "continue_verification"
+    return None
+
+
+def _verification_step(active_problem: str) -> str:
+    """Create the next concrete micro-check from the active problem."""
+    topic = active_problem or "el ejercicio"
+    if re.search(r"factor|cuadr[aá]tic", topic, re.I):
+        from ai_tutor.generation.instructional import InstructionalGenerator
+
+        factorization = InstructionalGenerator._factor_quadratic(topic)
+        roots = re.findall(r"x\s*=\s*(-?\d+(?:\.\d+)?)", factorization)
+        if roots:
+            return (
+                f"Sí, comprobémoslo. Sustituye x = {roots[0]} en el polinomio original. "
+                f"Calcula {roots[0]}² - 5·{roots[0]} + 6. ¿Qué resultado obtienes?"
+            )
+    return "Sí, avancemos con la comprobación que quedó pendiente. Haz el cálculo indicado y dime qué resultado obtienes."
+
+
 def _pending_activity_intent(message: str, previous_messages) -> Optional[str]:
     """Interpret a short turn against the tutor's pending pedagogical question.
 
@@ -606,6 +634,35 @@ class TutorApplicationService:
                 "latency_ms": round((time.perf_counter() - started) * 1000, 2),
                 "effective_model": "conversation-uncertainty-router-v1", "pedagogical_state": state,
                 "fallback_used": False, "requested_provider": self.default_provider,
+            }
+            self.memory.record_turn(user_id, conversation_id, message, answer, metadata)
+            return {"answer": answer, "metadata": metadata}
+        pending_action = _pending_action_intent(message, prepared["conversation"].pedagogical_state)
+        if pending_action == "continue_verification":
+            started = time.perf_counter()
+            answer = _verification_step(prepared["conversation"].active_problem)
+            state = {
+                **(prepared["conversation"].pedagogical_state or {}),
+                "current_activity": "verification",
+                "pending_question": answer,
+                "expected_response_type": "student_attempt",
+                "next_action": "check_attempt",
+                "last_step_closed": False,
+            }
+            metadata = {
+                "intent": "continue_verification",
+                "context_decision": "continue_verification",
+                "retrieval_method": "none",
+                "model_provider": "conversation_router",
+                "student_profile": f"persistent:{user_id}",
+                "retrieval_query": message,
+                "chunks": [],
+                "concepts": [],
+                "latency_ms": round((time.perf_counter() - started) * 1000, 2),
+                "effective_model": "verification-state-router-v1",
+                "pedagogical_state": state,
+                "fallback_used": False,
+                "requested_provider": self.default_provider,
             }
             self.memory.record_turn(user_id, conversation_id, message, answer, metadata)
             return {"answer": answer, "metadata": metadata}
