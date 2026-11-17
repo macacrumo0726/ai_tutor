@@ -10,6 +10,7 @@ from threading import Lock
 from typing import Optional
 
 from ai_tutor.assessment import UnderstandingEvaluator, verify_short_math_response
+from ai_tutor.assessment.llm_guardrail import review_with_deepseek
 from ai_tutor.generation.factory import create_generator
 from ai_tutor.generation.instructional import InstructionalGenerator
 from ai_tutor.memory import AuthenticationService, ConversationMemory, ConversationRepository, LearningProfileService
@@ -241,6 +242,19 @@ def _response_passes_guardrails(question: str, answer: str, conversation_context
         if not has_task:
             return False, "ejercicio sin enunciado accionable"
     return True, "ok"
+
+
+def _needs_llm_guardrail_review(question: str, answer: str, provider: str) -> bool:
+    """Limit second-pass checks to ambiguous generated turns."""
+    # Never call a remote verifier from the deterministic unit-test suite.
+    if os.getenv("PYTEST_CURRENT_TEST"):
+        return False
+    if not _bool_env("AI_TUTOR_GUARDRAIL_DOUBLE_CHECK", False) or provider == "deepseek":
+        return False
+    return bool(
+        re.search(r"\b(?:correcto|correcta|exacto|verific|comprueb|ejercicio|problema|factoriz|dominio)\b", question + " " + answer, re.I)
+        or re.search(r"[=²³^/]", answer)
+    )
 
 
 class TutorApplicationService:
@@ -722,6 +736,8 @@ class TutorApplicationService:
         primary_provider_error = ""
         model_fallback_used = False
         effective_provider = provider
+        double_check_status = "not_requested"
+        double_check_reason = ""
         providers = [provider] + ([item for item in self.fallback_providers if item != provider] if self.allow_fallback else [])
         provider_errors = []
         for candidate in providers:
@@ -748,6 +764,14 @@ class TutorApplicationService:
                     provider_errors.append(f"{candidate}: {guardrail_reason}")
                     requested_error = "; ".join(provider_errors)
                     continue
+                if _needs_llm_guardrail_review(message, candidate_response.answer, candidate):
+                    review = review_with_deepseek(message, candidate_response.answer, conversation_context)
+                    double_check_status = review.status
+                    double_check_reason = review.reason
+                    if review.status == "rejected":
+                        provider_errors.append(f"{candidate}: doble check DeepSeek rechazó la respuesta ({review.reason})")
+                        requested_error = "; ".join(provider_errors)
+                        continue
                 response = candidate_response
                 effective_provider = candidate
                 requested_error = "; ".join(provider_errors)
@@ -833,6 +857,11 @@ class TutorApplicationService:
             "fallback_used": effective_provider != provider or model_fallback_used,
             "requested_provider": provider,
             "requested_provider_error": requested_error or primary_provider_error,
+            "guardrail_double_check": {
+                "status": double_check_status,
+                "reason": double_check_reason,
+                "provider": "deepseek",
+            },
             "response_verification": verification or {"status": "not_available"},
             "pedagogical_state": pedagogical_state,
         }

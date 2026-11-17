@@ -133,6 +133,7 @@ Los guardrails se ejecutan después de generar y antes de mostrar la respuesta:
 \column{0.48\textwidth}
 \begin{itemize}
   \item verificación matemática cuando hay una respuesta explícita;
+  \item doble check opcional con DeepSeek para respuestas ambiguas del GPT;
   \item no marcar ``correcto'' sin comprobarlo;
   \item si falla, reintento con otro proveedor o respuesta instruccional local;
   \item el error técnico queda en logs, no en el chat.
@@ -161,10 +162,10 @@ Phi local & Phi-4-mini (Ollama) & DeepSeek, GPT & alternativa local más grande\
 \end{tabular}
 \vspace{3mm}
 \begin{block}{Política recomendada para el piloto}
-\textbf{Configuración activa:} DeepSeek como principal, GPT-4.1 mini como
-respaldo remoto y generador instruccional local como último recurso. Para un
-piloto sin costo de API, Qwen local permanece disponible como condición
-experimental, pero con un límite de tiempo estricto.
+\textbf{Configuración activa orientada a calidad:} GPT-4.1 mini como principal,
+DeepSeek como segundo verificador y respaldo remoto, y generador instruccional
+local como último recurso. Para un piloto sin costo de API, Qwen local permanece
+disponible como condición experimental, pero con un límite de tiempo estricto.
 \end{block}
 \end{frame}
 
