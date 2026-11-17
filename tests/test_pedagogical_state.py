@@ -55,6 +55,16 @@ def test_failed_confirmation_does_not_close_pending_step(tmp_path):
     assert saved.pedagogical_state.get("last_step_closed") is not True
 
 
+def test_request_for_another_exercise_returns_an_actual_problem(tmp_path):
+    service, identity, conversation = _service(tmp_path)
+    service.ask(identity, conversation.conversation_id, "Ayúdame a factorizar x² - 5x + 6")
+    service.ask(identity, conversation.conversation_id, "verificados")
+    result = service.ask(identity, conversation.conversation_id, "dame otro ejercicio")
+    assert result["metadata"]["intent"] == "exercise_request"
+    assert "factoriza" in result["answer"].lower()
+    assert "x²" in result["answer"]
+
+
 def test_student_can_delegate_topic_choice(tmp_path):
     service, identity, conversation = _service(tmp_path)
     service.ask(identity, conversation.conversation_id, "Quiero repasar exponentes enteros")

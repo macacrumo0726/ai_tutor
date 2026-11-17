@@ -108,6 +108,8 @@ def _pending_activity_intent(message: str, previous_messages) -> Optional[str]:
         if re.fullmatch(r"s[ií]|correcto|vale|ok|de acuerdo", normalized):
             return "exercise_confirmation"
     if re.search(r"¿?quieres que (?:probemos|trabajemos|hagamos).*\?|ejercicio.*\?", latest, re.I):
+        if re.search(r"(?:dame|ponme|prop[oó]n|quiero)\s+(?:otro\s+|un\s+|una\s+)?(?:ejercicio|problema|pr[aá]ctica)", normalized):
+            return "exercise_request"
         if re.fullmatch(r"s[ií]|correcto|vale|ok|de acuerdo", normalized):
             return "exercise_confirmation"
         if re.fullmatch(r"no|ahora no", normalized):
@@ -231,6 +233,13 @@ def _response_passes_guardrails(question: str, answer: str, conversation_context
         return False, "idioma no compatible con la interfaz"
     if not _response_is_relevant(question, answer, conversation_context):
         return False, "respuesta fuera de contexto"
+    if re.search(r"\b(?:dame|ponme|prop[oó]n|quiero)\s+(?:otro\s+|un\s+|una\s+)?(?:ejercicio|problema|pr[aá]ctica)\b", question, re.I):
+        # An exercise request must contain an actionable statement, not only an
+        # invitation to write a first step.  This catches provider responses
+        # that sound pedagogical but omit the actual problem.
+        has_task = bool(re.search(r"(?:=|\bcalcula\b|\bsimplifica\b|\bfactoriza\b|\bencuentra\b|\bresuelve\b|\bdetermina\b|\d\s*[+\-*/^])", answer, re.I))
+        if not has_task:
+            return False, "ejercicio sin enunciado accionable"
     return True, "ok"
 
 
