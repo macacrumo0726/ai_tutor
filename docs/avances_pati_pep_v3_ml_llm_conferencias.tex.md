@@ -33,24 +33,6 @@
   \titlepage
 \end{frame}
 
-\begin{frame}{Problema y pregunta de investigación}
-\small
-\begin{block}{Problema}
-Un LLM puede producir una explicación correcta para un turno aislado y, aun así,
-perder el ejercicio activo cuando el estudiante responde con ``no'', ``mmm'' o
-un número. El tutor necesita recuperar evidencia de Precálculo y mantener una
-decisión pedagógica coherente.
-\end{block}
-\begin{block}{Pregunta}
-¿Una arquitectura que combina memoria conversacional, routers ML y PEP-Plan-RAG v3
-mantiene mejor el contexto y la orientación pedagógica que un LLM conectado
-directamente al retrieval?
-\end{block}
-\vspace{2mm}
-\textbf{Control experimental:} mismo corpus, preguntas, perfil, prompt, top-$k$
-y PEP v3; la condición que cambia es la arquitectura del generador.
-\end{frame}
-
 \begin{frame}{Arquitectura completa de PATI}
 \centering
 \begin{tikzpicture}[font=\scriptsize, node distance=4mm and 6mm,
@@ -81,7 +63,9 @@ cada turno.
 
 \begin{frame}{Memoria y modelos ML conversacionales}
 \small
-\textbf{Qué se añadió:} una capa local, rápida y sin API antes del retrieval.
+\textbf{Qué se añadió:} tres clasificadores ML locales, rápidos y sin API antes
+del retrieval. Se entrenaron con ejemplos semilla mediante centroides sobre un
+codificador hashing; no son fine-tunings de un LLM.
 \begin{columns}[T]
 \column{0.48\textwidth}
 \begin{itemize}
@@ -160,7 +144,7 @@ El diseño separa \textit{router conceptual}, \textit{evaluación de respuesta},
 idea de enrutamiento y evaluación modular de Guatibonza Briceño et al.\footnote{Guatibonza Briceño et al., ``Evaluating an AI-Driven Chatbot Tutor for Enhancing Introductory Programming Learning'', ITS 2025, \url{https://doi.org/10.1007/978-3-031-98281-1_19}.}
 \end{frame}
 
-\begin{frame}{Condiciones de generación comparadas}
+\begin{frame}{Arquitectura activa y condiciones comparadas}
 \scriptsize
 Todas usan PEP-Plan-RAG v3, el mismo prompt y el mismo conjunto de preguntas.
 Gemini quedó fuera de la política activa por disponibilidad y cuota.
@@ -177,9 +161,10 @@ Phi local & Phi-4-mini (Ollama) & DeepSeek, GPT & alternativa local más grande\
 \end{tabular}
 \vspace{3mm}
 \begin{block}{Política recomendada para el piloto}
-DeepSeek como principal, GPT-4.1 mini como respaldo remoto y generador
-instruccional local como último recurso. Para un piloto sin costo de API,
-Qwen local permanece disponible, pero con un límite de tiempo estricto.
+\textbf{Configuración activa:} DeepSeek como principal, GPT-4.1 mini como
+respaldo remoto y generador instruccional local como último recurso. Para un
+piloto sin costo de API, Qwen local permanece disponible como condición
+experimental, pero con un límite de tiempo estricto.
 \end{block}
 \end{frame}
 
@@ -278,6 +263,11 @@ rúbrica humana de 1--5 para naturalidad, andamiaje y continuidad.
 evaluación humana ciega y análisis por tipo de turno. Reportar p50/p95, errores de
 tema, retención del problema activo, corrección matemática y calidad pedagógica.
 La suite automatizada actual reúne 131 pruebas pasando.
+\vspace{2mm}
+
+\textbf{Estrategia de publicación:} ITS/ICALT documentan plataforma y método de
+evaluación; el artículo Scopus reservará la contribución completa de PEP v3,
+la comparación controlada y la prueba con estudiantes.
 \end{frame}
 
 \begin{frame}{Propuesta de artículo para ITS 2027}
@@ -285,14 +275,13 @@ La suite automatizada actual reúne 131 pruebas pasando.
 \textbf{Título:} \textit{Prerequisite-Aware Conversational Tutoring for Precalculus: A Controlled Comparison of PEP-Plan-RAG and LLM Fallback Policies}
 \vspace{3mm}
 
-\textbf{Resumen propuesto:} Presentamos PATI, un tutor de Precálculo que combina
-PEP-Plan-RAG v3, memoria conversacional y routers ML para seleccionar evidencia y
-acciones pedagógicas. Comparamos, con el mismo corpus y prompt, cuatro políticas
-de generación: GPT, DeepSeek, Qwen local y Phi local con fallback. El estudio mide
-recuperación de conceptos y prerrequisitos, continuidad conversacional, corrección
-matemática, calidad pedagógica y latencia. El aporte es una evaluación controlada
-de cómo la política de fallback y el modelado de prerrequisitos afectan la
-experiencia tutorial, con trazabilidad por turno.
+\textbf{Resumen propuesto:} Presentamos PATI como una plataforma reproducible
+para estudiar tutores de Precálculo. Describimos su separación entre memoria,
+routers ML, PEP-Plan-RAG v3 y generadores con fallback, y reportamos un benchmark
+preliminar de latencia, disponibilidad y recuperación con el mismo corpus y prompt.
+El trabajo de ITS se plantea como artículo de sistema y metodología inicial: no
+presenta todavía los resultados decisivos del algoritmo ni la evaluación con
+estudiantes, que se reservarán para el artículo doctoral de mayor alcance.
 \vspace{3mm}
 
 \footnotesize Convocatoria y fechas: consultar el sitio oficial de ITS 2027,
@@ -304,13 +293,14 @@ experiencia tutorial, con trazabilidad por turno.
 \textbf{Título:} \textit{Adaptive Learning Routes for AI-Supported STEM Education: Student-State Routing and PEP-Plan-RAG in a Precalculus Tutor}
 \vspace{3mm}
 
-\textbf{Resumen propuesto:} Este trabajo describe una arquitectura desplegable
-para aprendizaje adaptativo en STEM. PATI conserva un perfil de dominio por
-concepto, actualiza el estado con respuestas y conversaciones, y usa ese estado
-para priorizar prerrequisitos en PEP-Plan-RAG v3. La evaluación combina métricas
-de retrieval, coherencia de diálogo y una rúbrica humana de andamiaje. El sistema
-registra evidencia, rutas de aprendizaje, latencias y fallbacks para estudiar la
-relación entre personalización y disponibilidad del servicio.
+\textbf{Resumen propuesto:} Describimos una arquitectura desplegable para
+aprendizaje adaptativo en STEM. PATI conserva un perfil de dominio por concepto,
+actualiza el estado con respuestas y conversaciones, y registra evidencia,
+latencias y fallbacks. El artículo se enfocaría en la infraestructura, la
+trazabilidad y el diseño de evaluación, sin revelar la comparación completa de
+PEP-Plan-RAG v3 ni los resultados de la intervención con estudiantes. Esos
+resultados se reservarán para el artículo Scopus que consolidará la contribución
+doctoral.
 \vspace{3mm}
 
 \footnotesize Encaja especialmente con las áreas APTeL, BDELA, TeSTEM y AISLE de
