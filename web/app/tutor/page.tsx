@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, ArrowUp, BookOpen, ChevronRight, FileText, LogOut, Menu, MessageCirclePlus, Palette, Sigma, Sparkles, X } from "lucide-react";
+import { Archive, ArrowUp, BookOpen, CheckCircle2, ChevronDown, ChevronRight, FileText, LogOut, Menu, MessageCirclePlus, Palette, Sigma, Sparkles, X } from "lucide-react";
 import { Avatar, AvatarConfig, defaultAvatar } from "@/components/Avatar";
 import { api, streamChat } from "@/lib/api";
 import { clearSession, getSession, Session } from "@/lib/auth";
@@ -10,6 +10,8 @@ import { clearSession, getSession, Session } from "@/lib/auth";
 type Conversation = { conversation_id: string; title: string; updated_at: string; messages?: Message[] };
 type Message = { message_id?: string; role: "user" | "assistant"; content: string; metadata?: Record<string, unknown> };
 type Me = Session & { avatar: AvatarConfig; protocol: { accepted_current: boolean } };
+type LearningRoute = { route_id: string; title: string; description: string; progress: number; completed_concepts: number; total_concepts: number; status: "completed" | "next" | "available"; concept_ids: string[] };
+type LearningPath = { routes: LearningRoute[]; items: Array<{ concept_id: string; label: string; mastery: number; status: "completed" | "next" | "practice"; is_prerequisite: boolean }>; mastery_threshold: number };
 
 const prompts = [
   "¿Cómo encuentro el dominio de una función racional?",
@@ -46,6 +48,8 @@ export default function TutorPage() {
   const [avatarOpen, setAvatarOpen] = useState(false);
   const [mathOpen, setMathOpen] = useState(false);
   const [error, setError] = useState("");
+  const [learningPath, setLearningPath] = useState<LearningPath | null>(null);
+  const [pathOpen, setPathOpen] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -61,10 +65,10 @@ export default function TutorPage() {
 
   useEffect(() => {
     if (!getSession()) { router.replace("/"); return; }
-    Promise.all([api<Me>("/api/me"), api<Conversation[]>("/api/conversations")])
-      .then(async ([identity, list]) => {
+    Promise.all([api<Me>("/api/me"), api<Conversation[]>("/api/conversations"), api<LearningPath>("/api/me/learning-path")])
+      .then(async ([identity, list, path]) => {
         if (!identity.protocol?.accepted_current) { router.replace("/protocol"); return; }
-        setMe(identity); setAvatar(identity.avatar || defaultAvatar); setConversations(list);
+        setMe(identity); setAvatar(identity.avatar || defaultAvatar); setConversations(list); setLearningPath(path);
         if (list.length) await loadConversation(list[0].conversation_id); else await createConversation();
       })
       .catch(reason => { clearSession(); setError(reason.message); router.replace("/"); });
@@ -92,7 +96,8 @@ export default function TutorPage() {
         }),
         onDone: () => setStatus(""),
       });
-      const list = await api<Conversation[]>("/api/conversations"); setConversations(list);
+      const [list, path] = await Promise.all([api<Conversation[]>("/api/conversations"), api<LearningPath>("/api/me/learning-path")]);
+      setConversations(list); setLearningPath(path);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "El tutor no pudo responder");
       setMessages(previous => previous.slice(0, -1));
@@ -158,6 +163,18 @@ export default function TutorPage() {
             <button className="archive-button" aria-label="Archivar" onClick={() => archive(item.conversation_id)}><Archive size={15}/></button>
           </div>)}
         </nav>
+        <section className="learning-route">
+          <button className="route-heading" onClick={() => setPathOpen(value => !value)}>
+            <span><Sparkles size={16}/> Mi ruta de aprendizaje</span><ChevronDown className={pathOpen ? "route-chevron open" : "route-chevron"} size={16}/>
+          </button>
+          {pathOpen && <div className="route-items">
+            {(learningPath?.routes || []).slice(0, 8).map(route => <button key={route.route_id} className={route.status === "completed" ? "route-item completed" : "route-item"} onClick={() => send(`Quiero repasar ${route.title}`)}>
+              <span className="route-status">{route.status === "completed" ? <CheckCircle2 size={17}/> : <span className="route-dot"/>}</span>
+              <span className="route-copy"><strong>{route.title}</strong><small>{route.description}</small><span className="route-progress"><i style={{ width: `${Math.round(route.progress * 100)}%` }}/></span><small>{Math.round(route.progress * 100)}% · {route.completed_concepts}/{route.total_concepts} conceptos</small></span>
+            </button>)}
+            {!learningPath?.routes?.length && <p className="route-empty">La ruta aparecerá cuando trabajemos el primer concepto.</p>}
+          </div>}
+        </section>
         <div className="sidebar-footer">
         {me?.role === "admin" && <button onClick={() => router.push("/admin")}><BookOpen size={17}/> Vista de investigación</button>}
           <button onClick={logout}><LogOut size={17}/> Cerrar sesión</button>

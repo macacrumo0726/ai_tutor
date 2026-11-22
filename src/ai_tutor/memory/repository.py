@@ -3,6 +3,7 @@ import json
 import hashlib
 import sqlite3
 import uuid
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -64,7 +65,8 @@ class ConversationRepository:
                 created_at TEXT NOT NULL,
                 password_hash TEXT NOT NULL DEFAULT '',
                 password_salt TEXT NOT NULL DEFAULT '',
-                role TEXT NOT NULL DEFAULT 'student'
+                role TEXT NOT NULL DEFAULT 'student',
+                is_demo INTEGER NOT NULL DEFAULT 0
             );
             UPDATE users SET role='admin' WHERE role='researcher';
             CREATE TABLE IF NOT EXISTS sessions (
@@ -107,6 +109,7 @@ class ConversationRepository:
                 retrieval_method TEXT NOT NULL DEFAULT 'rag',
                 model_provider TEXT NOT NULL DEFAULT 'instructional',
                 student_profile TEXT NOT NULL DEFAULT 'unknown',
+                pedagogical_state TEXT NOT NULL DEFAULT '{}',
                 archived INTEGER NOT NULL DEFAULT 0
             );
             CREATE INDEX IF NOT EXISTS idx_conversations_user_updated
@@ -236,9 +239,16 @@ class ConversationRepository:
                 ("password_hash", "TEXT NOT NULL DEFAULT ''"),
                 ("password_salt", "TEXT NOT NULL DEFAULT ''"),
                 ("role", "TEXT NOT NULL DEFAULT 'student'"),
+                ("is_demo", "INTEGER NOT NULL DEFAULT 0"),
+                ("pedagogical_state", "TEXT NOT NULL DEFAULT '{}'"),
             ):
-                if name not in columns:
-                    db.execute(f"ALTER TABLE users ADD COLUMN {name} {definition}")
+                table = "users" if name != "pedagogical_state" else "conversations"
+                table_columns = columns if table == "users" else (
+                    {row["column_name"] for row in db.execute("SELECT column_name FROM information_schema.columns WHERE table_name='conversations'").fetchall()}
+                    if self.database_url else {row["name"] for row in db.execute("PRAGMA table_info(conversations)")}
+                )
+                if name not in table_columns:
+                    db.execute(f"ALTER TABLE {table} ADD COLUMN {name} {definition}")
 
     def ensure_user(self, user_id: str, display_name: Optional[str] = None):
         user_id = self.normalize_user_id(user_id)
@@ -275,7 +285,39 @@ class ConversationRepository:
     def list_users(self):
         with self._connect() as db:
             return [dict(row) for row in db.execute(
-                "SELECT user_id,display_name,role,created_at FROM users ORDER BY created_at DESC").fetchall()]
+                "SELECT user_id,display_name,role,created_at,is_demo FROM users ORDER BY created_at DESC").fetchall()]
+
+    def list_study_users(self):
+        """Return authenticated study accounts, excluding only ephemeral tests.
+
+        Named demo/research accounts (including ``investigador_demo`` and
+        ``estudiante_demo_*``) are real inspectable profiles for local
+        validation and must remain visible in the admin panel. Only accounts
+        created by load/diagnostic scripts are hidden.
+        """
+        with self._connect() as db:
+            rows = [dict(row) for row in db.execute(
+                """SELECT user_id,display_name,role,created_at,is_demo
+                   FROM users
+                   WHERE password_hash <> ''
+                   ORDER BY created_at DESC""").fetchall()]
+        return [row for row in rows if not self._is_test_account(row["user_id"])]
+
+    @staticmethod
+    def _is_test_account(user_id: str) -> bool:
+        # These named profiles are intentionally inspectable in the research
+        # panel; other ``*_demo`` accounts are seed fixtures and stay hidden.
+        if user_id == "investigador_demo" or user_id.startswith("estudiante_demo_"):
+            return False
+        return bool(re.match(
+            r"^(?:load|diag|ctx|guard|smoke|qwen|ollama|path|final|batch)(?:_|\d|$)|.*_demo(?:_|$)",
+            user_id or "",
+        ))
+
+    def mark_demo_user(self, user_id: str, is_demo: bool = True):
+        with self._connect() as db:
+            db.execute("UPDATE users SET is_demo=? WHERE user_id=?",
+                       (1 if is_demo else 0, self.normalize_user_id(user_id)))
 
     def create_session(self, user_id: str, token: str, expires_at: str, created_at: Optional[str] = None):
         user_id = self.normalize_user_id(user_id)
@@ -575,10 +617,12 @@ class ConversationRepository:
 
     def update_conversation(self, user_id: str, conversation_id: str, **values):
         self.get_conversation(user_id, conversation_id)
-        allowed = {"title", "summary", "active_problem", "retrieval_method", "model_provider", "student_profile", "archived"}
+        allowed = {"title", "summary", "active_problem", "retrieval_method", "model_provider", "student_profile", "pedagogical_state", "archived"}
         updates = {key: value for key, value in values.items() if key in allowed}
         if not updates:
             return self.get_conversation(user_id, conversation_id)
+        if isinstance(updates.get("pedagogical_state"), dict):
+            updates["pedagogical_state"] = json.dumps(updates["pedagogical_state"], ensure_ascii=False)
         updates["updated_at"] = _now()
         assignment = ",".join(f"{key}=?" for key in updates)
         with self._connect() as db:
@@ -593,5 +637,5 @@ class ConversationRepository:
         return Conversation(
             row["conversation_id"], row["user_id"], row["title"], row["created_at"], row["updated_at"],
             row["summary"], row["active_problem"], row["retrieval_method"], row["model_provider"],
-            row["student_profile"], bool(row["archived"]),
+            row["student_profile"], json.loads(row["pedagogical_state"] or "{}"), bool(row["archived"]),
         )

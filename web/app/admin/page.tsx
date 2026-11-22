@@ -6,7 +6,7 @@ import { ArrowLeft, BrainCircuit, Database, Gauge, MessageSquare, Search, Shield
 import { api } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 
-type Overview = { users: number; provider: string; retrieval_method: string; fallback_enabled: boolean };
+type Overview = { users: number; provider: string; retrieval_method: string; providers?: string[]; retrieval_methods?: string[]; fallback_enabled: boolean };
 type User = { user_id: string; display_name: string; role: string; created_at: string };
 type HistoryMessage = { message_id: string; role: "user" | "assistant"; content: string; created_at: string };
 type HistoryConversation = { conversation_id: string; title: string; updated_at: string; archived: boolean; messages: HistoryMessage[] };
@@ -15,11 +15,18 @@ type UserDetail = { user: User; protocol: { current_version: string; accepted_cu
 export default function AdminPage() {
   const router = useRouter(); const [overview, setOverview] = useState<Overview | null>(null); const [users, setUsers] = useState<User[]>([]);
   const [selected, setSelected] = useState<UserDetail | null>(null); const [selectedConversation, setSelectedConversation] = useState(""); const [filter, setFilter] = useState(""); const [error, setError] = useState("");
+  const [metricUser, setMetricUser] = useState("");
   useEffect(() => {
     if (getSession()?.role !== "admin") { router.replace("/tutor"); return; }
-    Promise.all([api<Overview>("/api/admin/overview"), api<User[]>("/api/admin/users")]).then(([summary, list]) => { setOverview(summary); setUsers(list); }).catch(reason => setError(reason.message));
+    api<User[]>("/api/admin/users").then(setUsers).catch(reason => setError(reason.message));
   }, [router]);
-  async function selectUser(userId: string) { const detail = await api<UserDetail>(`/api/admin/users/${userId}`); setSelected(detail); setSelectedConversation(detail.conversations[0]?.conversation_id || ""); }
+  useEffect(() => {
+    if (getSession()?.role !== "admin") return;
+    const params = new URLSearchParams();
+    if (metricUser) params.set("user_id", metricUser);
+    api<Overview>(`/api/admin/overview${params.toString() ? `?${params}` : ""}`).then(setOverview).catch(reason => setError(reason.message));
+  }, [metricUser]);
+  async function selectUser(userId: string) { const detail = await api<UserDetail>(`/api/admin/users/${userId}`); setSelected(detail); setSelectedConversation(detail.conversations[0]?.conversation_id || ""); setMetricUser(userId); }
   const visible = users.filter(user => `${user.display_name} ${user.user_id}`.toLowerCase().includes(filter.toLowerCase()));
   const activeConversation = selected?.conversations.find(item => item.conversation_id === selectedConversation);
   return <main className="admin-page">
@@ -27,8 +34,8 @@ export default function AdminPage() {
     {error && <div className="chat-error">{error}</div>}
     <section className="metric-grid">
       <Metric icon={<Users/>} label="Usuarios" value={overview?.users ?? "—"}/>
-      <Metric icon={<BrainCircuit/>} label="Retrieval activo" value={overview?.retrieval_method ?? "—"}/>
-      <Metric icon={<MessageSquare/>} label="Modelo" value={overview?.provider ?? "—"}/>
+      <Metric icon={<BrainCircuit/>} label="Retrieval activo" value={<MetricScroller values={overview?.retrieval_methods || []} fallback={overview?.retrieval_method ? displayLabel(overview.retrieval_method) : "—"}/>}/>
+      <Metric icon={<MessageSquare/>} label="Modelo" value={<MetricScroller values={overview?.providers || []} fallback={overview?.provider ? displayLabel(overview.provider) : "—"}/>}/>
       <Metric icon={<Gauge/>} label="Fallback" value={overview?.fallback_enabled ? "Activo" : "Inactivo"}/>
     </section>
     <section className="admin-content">
@@ -45,4 +52,24 @@ export default function AdminPage() {
   </main>;
 }
 
-function Metric({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | number }) { return <article className="metric-card"><span>{icon}</span><div><small>{label}</small><strong>{value}</strong></div></article>; }
+function Metric({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) { return <article className="metric-card"><span>{icon}</span><div><small>{label}</small>{value}</div></article>; }
+
+function MetricScroller({ values, fallback }: { values: string[]; fallback: string }) {
+  const visible = values.length ? values : [fallback];
+  return <div className="metric-scroller" aria-label="Valores disponibles">
+    {visible.map((item, index) => <strong key={`${item}-${index}`}>{displayLabel(item)}</strong>)}
+  </div>;
+}
+
+function displayLabel(value: string) {
+  return value.split(" · ").map(item => ({
+    pep_plan_rag: "PEP-Plan-RAG v3",
+    rag: "RAG baseline",
+    graph_rag: "Graph-RAG",
+    gemini: "Gemini",
+    instructional: "Tutor instruccional",
+    local_qwen3_1_7b: "Qwen local",
+    local_base: "Modelo local",
+    instructional_emergency: "Fallback instruccional",
+  }[item] || item)).join(" · ");
+}

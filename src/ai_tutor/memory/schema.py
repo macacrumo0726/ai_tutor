@@ -25,5 +25,6 @@ class Conversation:
     retrieval_method: str = "rag"
     model_provider: str = "instructional"
     student_profile: str = "unknown"
+    pedagogical_state: dict[str, Any] = field(default_factory=dict)
     archived: bool = False
     messages: Optional[list[Message]] = None

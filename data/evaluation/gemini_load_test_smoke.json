@@ -1,0 +1,16 @@
+{
+  "description": "HTTP chat load test; one isolated user/conversation per request.",
+  "levels": [
+    {
+      "concurrency": 1,
+      "requests": 1,
+      "successful": 1,
+      "failed": 0,
+      "fallbacks": 0,
+      "wall_time_ms": 24154.0,
+      "p50_latency_ms": 23972.1,
+      "p95_latency_ms": 23972.1,
+      "errors": []
+    }
+  ]
+}

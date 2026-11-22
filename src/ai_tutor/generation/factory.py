@@ -18,8 +18,8 @@ def load_dotenv():
 def create_generator(provider="instructional"):
     load_dotenv(); cfg=load_config(); models=cfg["generation"].get("default_models",{})
     if provider=="instructional": return InstructionalGenerator()
-    if provider in {"local_base","local_finetuned","local_deepseek_base","local_deepseek_finetuned","local_qwen3_4b","local_phi4_mini"}:
-        env_names={"local_base":"LOCAL_BASE_MODEL","local_finetuned":"LOCAL_FINETUNED_MODEL","local_deepseek_base":"LOCAL_DEEPSEEK_BASE_MODEL","local_deepseek_finetuned":"LOCAL_DEEPSEEK_FINETUNED_MODEL","local_qwen3_4b":"LOCAL_QWEN3_4B_MODEL","local_phi4_mini":"LOCAL_PHI4_MINI_MODEL"}
+    if provider in {"local_base","local_finetuned","local_deepseek_base","local_deepseek_finetuned","local_qwen3_4b","local_qwen3_1_7b","local_phi4_mini"}:
+        env_names={"local_base":"LOCAL_BASE_MODEL","local_finetuned":"LOCAL_FINETUNED_MODEL","local_deepseek_base":"LOCAL_DEEPSEEK_BASE_MODEL","local_deepseek_finetuned":"LOCAL_DEEPSEEK_FINETUNED_MODEL","local_qwen3_4b":"LOCAL_QWEN3_4B_MODEL","local_qwen3_1_7b":"LOCAL_QWEN3_1_7B_MODEL","local_phi4_mini":"LOCAL_PHI4_MINI_MODEL"}
         env_model=env_names[provider]
         model=os.getenv(env_model,models[provider])
         base_url=os.getenv("LOCAL_LLM_BASE_URL",cfg["generation"]["local_openai_base_url"])
@@ -34,4 +34,5 @@ def create_generator(provider="instructional"):
     if provider=="gemini":
         return GeminiGenerator(models[provider],cfg["generation"].get("request_timeout_ms",30000),
                                cfg["generation"].get("gemini_fallback_model","gemini-2.5-flash-lite"))
-    return {"openai":OpenAIGenerator,"deepseek":DeepSeekGenerator}[provider](models[provider])
+    model = os.getenv("OPENAI_MODEL", models[provider]) if provider == "openai" else models[provider]
+    return {"openai":OpenAIGenerator,"deepseek":DeepSeekGenerator}[provider](model)

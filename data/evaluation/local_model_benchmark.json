@@ -1,0 +1,124 @@
+{
+  "models": [
+    "qwen3:1.7b",
+    "qwen3:4b",
+    "phi4-mini",
+    "gemma3:4b"
+  ],
+  "rows": [
+    {
+      "model": "qwen3:1.7b",
+      "turn": 1,
+      "latency_ms": 4795.5,
+      "answer": "",
+      "finish": "length",
+      "error": "",
+      "spanish": false,
+      "factor_correct": false,
+      "wrong_topic": false
+    },
+    {
+      "model": "qwen3:1.7b",
+      "turn": 2,
+      "latency_ms": 2904.8,
+      "answer": "",
+      "finish": "length",
+      "error": "",
+      "spanish": false,
+      "factor_correct": false,
+      "wrong_topic": false
+    },
+    {
+      "model": "qwen3:4b",
+      "turn": 1,
+      "latency_ms": 7536.3,
+      "answer": "",
+      "finish": "length",
+      "error": "",
+      "spanish": false,
+      "factor_correct": false,
+      "wrong_topic": false
+    },
+    {
+      "model": "qwen3:4b",
+      "turn": 2,
+      "latency_ms": 6014.2,
+      "answer": "",
+      "finish": "length",
+      "error": "",
+      "spanish": false,
+      "factor_correct": false,
+      "wrong_topic": false
+    },
+    {
+      "model": "phi4-mini",
+      "turn": 1,
+      "latency_ms": 8133.5,
+      "answer": "Claro, estaré encantado de ayudarte a factorizar la expresión cuadrática \\( x^2 - 5x + 6 \\).\n\nPara factorizar una expresión cuadrática de la forma \\( ax^2 + bx + c \\), buscamos dos números que multiplicados den \\( ac \\) (en este caso, \\( 1 \\cdot 6 = 6 \\)) y sumados den \\( b \\) (en este caso, \\(-5\\)).\n\nVamos a encontrar dos números que cumplan estas condiciones:\n1. Los números deben multiplicarse para dar 6.\n2. Los números deben sumarse para dar -5.\n\nLos números que cumplen estas condiciones son -2 y -3, porque:\n- \\((-2) \\cdot (-3) = 6\\)\n- \\((-2) + (-3) = -5\\)\n\nAhora, podemos reescribir el término medio \\(-5x\\) usando estos dos números:\n\\[ x^2 - 2x - 3x + 6 \\]\n\nA continuación, agrupamos los términos:\n\\[ (x^2 - 2x) + (-3x + 6) \\]\n\nLuego, extraemos la mayor común factor (M.C.F.) de cada",
+      "finish": "length",
+      "error": "",
+      "spanish": true,
+      "factor_correct": false,
+      "wrong_topic": false
+    },
+    {
+      "model": "phi4-mini",
+      "turn": 2,
+      "latency_ms": 2790.5,
+      "answer": "No, 4 y 6 no son los números correctos. La suma de 4 y 6 es 10, no -5. Necesitamos dos números que sumen -5 y cuyo producto sea 6. Los números correctos son -2 y -3, porque -2 + (-3) = -5 y -2 * -3 = 6. Entonces, la factorización correcta de x² - 5x + 6 es (x - 2)(x - 3). ¿Te gustaría practicar con otra expresión cuadrática?",
+      "finish": "stop",
+      "error": "",
+      "spanish": true,
+      "factor_correct": false,
+      "wrong_topic": false
+    },
+    {
+      "model": "gemma3:4b",
+      "turn": 1,
+      "latency_ms": 4.6,
+      "answer": "",
+      "finish": "error",
+      "error": "HTTP Error 404: Not Found",
+      "spanish": false,
+      "factor_correct": false,
+      "wrong_topic": false
+    },
+    {
+      "model": "gemma3:4b",
+      "turn": 2,
+      "latency_ms": 5.5,
+      "answer": "",
+      "finish": "error",
+      "error": "HTTP Error 404: Not Found",
+      "spanish": false,
+      "factor_correct": false,
+      "wrong_topic": false
+    }
+  ],
+  "summary": {
+    "qwen3:1.7b": {
+      "mean_latency_ms": 3850.2,
+      "correct_factor_turns": 0,
+      "wrong_topic_turns": 0,
+      "errors": 0
+    },
+    "qwen3:4b": {
+      "mean_latency_ms": 6775.2,
+      "correct_factor_turns": 0,
+      "wrong_topic_turns": 0,
+      "errors": 0
+    },
+    "phi4-mini": {
+      "mean_latency_ms": 5462.0,
+      "correct_factor_turns": 0,
+      "wrong_topic_turns": 0,
+      "errors": 0
+    },
+    "gemma3:4b": {
+      "mean_latency_ms": 5.0,
+      "correct_factor_turns": 0,
+      "wrong_topic_turns": 0,
+      "errors": 2
+    }
+  }
+}

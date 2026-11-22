@@ -9,7 +9,7 @@ from dataclasses import asdict
 from threading import Lock
 from typing import Optional
 
-from ai_tutor.assessment import UnderstandingEvaluator, verify_short_math_response
+from ai_tutor.assessment import UnderstandingEvaluator, verify_short_math_response, verify_factorization_attempt
 from ai_tutor.assessment.llm_guardrail import review_with_deepseek
 from ai_tutor.generation.factory import create_generator
 from ai_tutor.generation.instructional import InstructionalGenerator
@@ -98,6 +98,14 @@ def _pending_action_intent(message: str, state: dict | None) -> Optional[str]:
     state = state or {}
     pending = state.get("pending_question", "")
     normalized = re.sub(r"\s+", " ", message or "").strip().lower()
+    # An explicit request for a practice problem is an activity transition,
+    # even when the previous tutor turn did not end with the exact word
+    # "ejercicio".  Routing it here prevents retrieval from selecting an
+    # unrelated chunk (for example matrices) as a pseudo-answer.
+    if re.search(r"\b(?:ponme|dame|quiero|prop[oó]n(?:me)?|hagamos)\b.*\b(?:pr[aá]ctica|ejercicio|problema)\b", normalized):
+        return "exercise_request"
+    if re.search(r"\b(?:otro|otro\s+parecido|uno\s+parecido|un\s+nuevo)\s+(?:ejercicio|problema|pr[aá]ctica)\b", normalized):
+        return "exercise_request"
     if not pending or not re.fullmatch(r"(?:s[ií]|correcto|vale|ok|de acuerdo|adelante)", normalized):
         return None
     if re.search(r"comprob|verific|sustituy|ra[ií]ces|c[aá]lculo", pending, re.I):
@@ -126,9 +134,13 @@ def _verification_step(active_problem: str, state: dict | None = None) -> tuple[
     topic = active_problem or "el ejercicio"
     if roots and re.search(r"factor|cuadr[aá]tic|x\s*\^?2", topic + " " + str(state), re.I):
         root = roots[index]
+        coefficients = re.search(r"x\s*(?:²|\^2)\s*([+-])\s*(\d+)\s*x\s*([+-])\s*(\d+)", topic.replace("−", "-"), re.I)
+        polynomial = topic
+        if coefficients:
+            polynomial = f"{root}² {coefficients.group(1)} {coefficients.group(2)}·{root} {coefficients.group(3)} {coefficients.group(4)}"
         return (
             f"Comprobemos x = {root}. Sustitúyelo en el polinomio original: "
-            f"{root}² - 5·{root} + 6. ¿Qué resultado obtienes?",
+            f"{polynomial}. ¿Qué resultado obtienes?",
             roots,
             index,
         )
@@ -145,6 +157,27 @@ def _pending_decline(message: str, state: dict | None) -> bool:
     )
 
 
+def _declines_pending_verification(message: str, state: dict | None, active_problem: str = "") -> bool:
+    """Recognize a learner declining an optional root/check calculation.
+
+    ``no`` is not evidence of conceptual uncertainty when PATI has just
+    offered an optional verification and the learner gives a reason such as
+    ``ya sé que da 0``.  This gate must run before the generic feedback router.
+    """
+    state = state or {}
+    pending = state.get("pending_question", "")
+    text = re.sub(r"\s+", " ", message or "").strip()
+    if re.match(r"^no\s+(?:me\s+)?(?:da|dio|sale|resulta)", text, re.I):
+        return False
+    return bool(
+        re.match(r"^no\b", text, re.I)
+        and (re.fullmatch(r"no[.!?]*", text, re.I) or
+             re.search(r"\b(?:porque|ya\s+(?:s[eé]|lo)|no\s+necesito|prefiero)\b", text, re.I))
+        and re.search(r"(?:comprob|verific|ra[ií]ces|sustituy|da[n]?\s+0|cero)", pending, re.I)
+        and re.search(r"factor|cuadr[aá]tic|x\s*(?:²|\^2)", pending + " " + (active_problem or ""), re.I)
+    )
+
+
 def _pending_activity_intent(message: str, previous_messages) -> Optional[str]:
     """Interpret a short turn against the tutor's pending pedagogical question.
 
@@ -155,6 +188,13 @@ def _pending_activity_intent(message: str, previous_messages) -> Optional[str]:
     if not latest:
         return None
     normalized = re.sub(r"\s+", " ", message or "").strip().lower()
+    # Explicit practice requests are activity transitions. Handle them before
+    # retrieval even if the previous tutor wording did not contain the exact
+    # word "ejercicio".
+    if re.search(r"\b(?:ponme|dame|quiero|prop[oó]n(?:me)?|hagamos)\b.*\b(?:pr[aá]ctica|ejercicio|problema)\b", normalized):
+        return "exercise_request"
+    if re.search(r"\b(?:otro|uno\s+parecido|un\s+nuevo)\s+(?:ejercicio|problema|pr[aá]ctica)\b", normalized):
+        return "exercise_request"
     if re.search(r"explicaci[oó]n.*ejercicio|ejercicio.*explicaci[oó]n|expresi[oó]n.*paso", latest, re.I):
         if re.fullmatch(r"ejercicio|ejemplo|pr[aá]ctica|problema", normalized):
             return "exercise_request"
@@ -190,6 +230,31 @@ def _exercise_for_topic(active_problem: str) -> str:
     if re.search(r"matriz", topic):
         return "Perfecto. Si A = [[1, 2], [3, 4]], calcula 2A. ¿Qué ocurre con cada entrada?"
     return "Perfecto. Propongo un ejercicio guiado sobre este tema. Escríbeme el primer paso que intentarías y lo revisamos juntos."
+
+
+def _factorization_walkthrough(expression: str) -> str:
+    """Give a compact, deterministic walkthrough for the active quadratic."""
+    normalized = (expression or "").replace("−", "-").replace("²", "^2")
+    match = re.search(r"x\s*\^2\s*([+-])\s*(\d+)\s*x\s*([+-])\s*(\d+)", normalized, re.I)
+    if not match:
+        return "Puedo resolverlo paso a paso si me confirmas el trinomio exacto."
+    b = int(match.group(2)) * (-1 if match.group(1) == "-" else 1)
+    c = int(match.group(4)) * (-1 if match.group(3) == "-" else 1)
+    pair = next(((a, c // a) for a in range(-abs(c), abs(c) + 1)
+                 if a and c % a == 0 and a + c // a == b), None)
+    if pair is None:
+        return f"Este trinomio no tiene una factorización entera inmediata. Podemos resolverlo con la fórmula general."
+    a, d = pair
+    signed_b = f"{b:+d}x"
+    signed_c = f"{c:+d}"
+    factor_a = f"x {a:+d}" if a < 0 else f"x + {a}"
+    factor_d = f"x {d:+d}" if d < 0 else f"x + {d}"
+    return (
+        f"Vamos paso a paso con {expression}. Primero buscamos dos números cuyo producto sea {c} "
+        f"y cuya suma sea {b}. Son {a} y {d}, porque {a} + ({d}) = {b} y "
+        f"{a}·({d}) = {c}. Por eso, {expression} = ({factor_a})({factor_d}). "
+        f"Al desarrollar: x² {signed_b} {signed_c}, así comprobamos la factorización."
+    )
 
 
 def _starting_point_for_topic(active_problem: str) -> str:
@@ -500,6 +565,10 @@ class TutorApplicationService:
         pending_intent = context_decision.intent if context_decision.intent in {
             "exercise_request", "exercise_confirmation", "choose_for_student", "decline_activity"
         } else _pending_activity_intent(message, prepared["messages"])
+        current_state = prepared["conversation"].pedagogical_state or {}
+        if (current_state.get("pending_kind") == "factorization" and
+                re.search(r"\b(?:resu[eé]lvelo|hazlo|h[aá]galo|mu[eé]strame|expl[ií]calo)\b", message, re.I)):
+            pending_intent = "solve_current_exercise"
         if _pending_decline(message, prepared["conversation"].pedagogical_state):
             started = time.perf_counter()
             answer = "De acuerdo, dejamos el ejercicio cerrado por ahora. Cuando quieras, podemos practicar otro parecido o repasar otro concepto."
@@ -509,6 +578,52 @@ class TutorApplicationService:
                 "model_provider": "conversation_router", "student_profile": f"persistent:{user_id}", "retrieval_query": message,
                 "chunks": [], "concepts": [], "latency_ms": round((time.perf_counter() - started) * 1000, 2),
                 "effective_model": "conversation-choice-router-v1", "pedagogical_state": state,
+                "fallback_used": False, "requested_provider": self.default_provider,
+            }
+            self.memory.record_turn(user_id, conversation_id, message, answer, metadata)
+            return {"answer": answer, "metadata": metadata}
+        if pending_intent == "solve_current_exercise":
+            started = time.perf_counter()
+            expression = current_state.get("exercise_expression", "")
+            answer = _factorization_walkthrough(expression)
+            state = {
+                **current_state,
+                "current_activity": "review",
+                "pending_question": "¿Quieres comprobar la multiplicación o prefieres practicar otro parecido?",
+                "expected_response_type": "student_choice",
+                "next_action": "offer_exercise",
+                "last_step_closed": True,
+            }
+            metadata = {
+                "intent": pending_intent, "context_decision": pending_intent,
+                "retrieval_method": "none", "model_provider": "conversation_router",
+                "student_profile": f"persistent:{user_id}", "retrieval_query": message,
+                "chunks": [], "concepts": [],
+                "latency_ms": round((time.perf_counter() - started) * 1000, 2),
+                "effective_model": "factorization-walkthrough-v1", "pedagogical_state": state,
+                "fallback_used": False, "requested_provider": self.default_provider,
+            }
+            self.memory.record_turn(user_id, conversation_id, message, answer, metadata)
+            return {"answer": answer, "metadata": metadata}
+        # When the learner compares coefficients from two consecutive
+        # exercises, answer from the stored active exercise instead of letting
+        # retrieval choose whichever old polynomial appears most often.
+        if (current_state.get("pending_kind") == "factorization" and
+                re.search(r"por\s+qu[eé].*(?:dijiste|hab[ií]as\s+dicho|mencionaste|sal[ií]a)", message, re.I)):
+            started = time.perf_counter()
+            expression = current_state.get("exercise_expression", "el ejercicio actual")
+            answer = (
+                "El −5 correspondía al ejercicio anterior, x² − 5x + 6. "
+                f"Ahora estamos trabajando {expression}, cuyo coeficiente de x es +5. "
+                "Por eso en este ejercicio buscamos dos números que sumen 5 y multipliquen 6: 2 y 3."
+            )
+            state = {**current_state, "pending_question": "¿Quieres comprobar la multiplicación o prefieres practicar otro parecido?"}
+            metadata = {
+                "intent": "clarify_exercise_transition", "context_decision": "clarify_exercise_transition",
+                "retrieval_method": "none", "model_provider": "conversation_router",
+                "student_profile": f"persistent:{user_id}", "retrieval_query": message,
+                "chunks": [], "concepts": [], "latency_ms": round((time.perf_counter() - started) * 1000, 2),
+                "effective_model": "factorization-context-router-v1", "pedagogical_state": state,
                 "fallback_used": False, "requested_provider": self.default_provider,
             }
             self.memory.record_turn(user_id, conversation_id, message, answer, metadata)
@@ -524,6 +639,10 @@ class TutorApplicationService:
                 "expected_response_type": "student_attempt",
                 "next_action": "check_attempt",
             }
+            exercise_match = re.search(r"x\s*(?:²|\^2)\s*[+-]\s*\d+\s*x\s*[+-]\s*\d+", answer, re.I)
+            if exercise_match:
+                expression = exercise_match.group(0)
+                state.update({"topic": expression, "pending_kind": "factorization", "exercise_expression": expression})
             metadata = {
                 "intent": pending_intent,
                 "retrieval_method": "none",
@@ -561,6 +680,30 @@ class TutorApplicationService:
                         "student_profile": f"persistent:{user_id}", "retrieval_query": message, "chunks": [], "concepts": [],
                         "latency_ms": round((time.perf_counter() - started) * 1000, 2), "effective_model": "pedagogical-state-router-v1",
                         "pedagogical_state": state, "fallback_used": False, "requested_provider": self.default_provider}
+            self.memory.record_turn(user_id, conversation_id, message, answer, metadata)
+            return {"answer": answer, "metadata": metadata}
+        # Do not regenerate the whole explanation when the learner asks for
+        # "paso a paso" while an exercise is already open.  Keep the current
+        # mathematical target and advance one small action instead.
+        current_state = prepared["conversation"].pedagogical_state or {}
+        if (current_state.get("pending_kind") == "factorization" and
+                re.fullmatch(r"\s*(?:paso\s+a\s+paso|expl[ií]camelo|c[oó]mo\s+lo\s+hago)\s*[.!?]*", message or "", re.I)):
+            started = time.perf_counter()
+            expression = current_state.get("exercise_expression", "el trinomio")
+            answer = (
+                f"Claro. Trabajemos {expression} sin saltarnos pasos. "
+                "Primero necesitamos dos números: su producto debe ser el término independiente "
+                "y su suma debe ser el coeficiente de x. Empieza proponiendo un par y comprobamos ambas operaciones."
+            )
+            state = {**current_state, "pending_question": answer, "next_action": "check_attempt", "last_step_closed": False}
+            metadata = {
+                "intent": "continue_current_exercise", "context_decision": "continue_current_exercise",
+                "retrieval_method": "none", "model_provider": "conversation_router",
+                "student_profile": f"persistent:{user_id}", "retrieval_query": message,
+                "chunks": [], "concepts": [], "latency_ms": round((time.perf_counter() - started) * 1000, 2),
+                "effective_model": "pedagogical-state-router-v2", "pedagogical_state": state,
+                "fallback_used": False, "requested_provider": self.default_provider,
+            }
             self.memory.record_turn(user_id, conversation_id, message, answer, metadata)
             return {"answer": answer, "metadata": metadata}
         if context_decision.intent == "decline_example":
@@ -635,6 +778,36 @@ class TutorApplicationService:
                 "retrieval_query": message, "chunks": [], "concepts": [],
                 "latency_ms": round((time.perf_counter() - started) * 1000, 2),
                 "effective_model": "feedback-evaluator-v1", "pedagogical_state": state,
+                "fallback_used": False, "requested_provider": self.default_provider,
+            }
+            self.memory.record_turn(user_id, conversation_id, message, answer, metadata)
+            return {"answer": answer, "metadata": metadata}
+        if _declines_pending_verification(
+            message,
+            prepared["conversation"].pedagogical_state,
+            prepared["conversation"].active_problem,
+        ):
+            started = time.perf_counter()
+            answer = (
+                "De acuerdo, no hace falta repetir la comprobación. "
+                "La factorización ya quedó justificada porque los factores producen "
+                "el polinomio original. ¿Quieres practicar otro ejercicio o repasar otro concepto?"
+            )
+            state = {
+                **(prepared["conversation"].pedagogical_state or {}),
+                "current_activity": "review",
+                "pending_question": answer,
+                "expected_response_type": "student_choice",
+                "next_action": "offer_exercise",
+                "last_step_closed": True,
+            }
+            metadata = {
+                "intent": "decline_verification", "context_decision": "decline_verification",
+                "retrieval_method": "none", "model_provider": "conversation_router",
+                "student_profile": f"persistent:{user_id}", "retrieval_query": message,
+                "chunks": [], "concepts": [],
+                "latency_ms": round((time.perf_counter() - started) * 1000, 2),
+                "effective_model": "verification-choice-router-v1", "pedagogical_state": state,
                 "fallback_used": False, "requested_provider": self.default_provider,
             }
             self.memory.record_turn(user_id, conversation_id, message, answer, metadata)
@@ -822,6 +995,19 @@ class TutorApplicationService:
             message,
             previous_tutor.content if previous_tutor else "",
         )
+        active_state = prepared["conversation"].pedagogical_state or {}
+        factor_context = "\n".join(filter(None, [
+            previous_tutor.content if previous_tutor else "",
+            active_state.get("pending_question", ""),
+            active_state.get("exercise_expression", ""),
+        ]))
+        factor_verification = verify_factorization_attempt(message, factor_context)
+        # The factorization checker is more specific than the generic short
+        # answer checker.  It understands both numeric pairs (``4 y 3``) and
+        # factor expressions (``x+4 y x+3``), avoiding stale attribution to a
+        # previous attempt.
+        if factor_verification is not None:
+            verification = factor_verification
         conversation_context = prepared["conversation_context"]
         if context_decision.evaluation:
             evaluation = context_decision.evaluation
@@ -1058,6 +1244,31 @@ class TutorApplicationService:
                     f"{sum(expected)} y cuyo producto sea {expected[0] * expected[1]}. "
                     f"El par correcto es {expected[0]} y {expected[1]}; comprueba ambas operaciones "
                     "antes de escribir los factores."
+                )
+            metadata["answer_guardrail_used"] = True
+        elif verification and verification.get("kind") in {"quadratic_factor_pair_v2", "quadratic_factor_expression_v2"}:
+            expected = verification["expected_pair"]
+            b = verification["target_coefficients"]["b"]
+            c = verification["target_coefficients"]["c"]
+            if verification["status"] == "correct":
+                answer = (
+                    f"Sí, ese intento funciona: la suma es {b} y el producto es {c}. "
+                    f"Por tanto, los factores son (x {expected[0]:+d})(x {expected[1]:+d}). "
+                    "¿Quieres que comprobemos la multiplicación o prefieres practicar otro parecido?"
+                )
+            elif verification.get("kind") == "quadratic_factor_expression_v2":
+                answer = (
+                    f"Casi. Los factores que escribiste representan raíces "
+                    f"{verification['student_pair'][0]} y {verification['student_pair'][1]}, "
+                    f"y al multiplicarlos aparece un término {verification['candidate_sum']:+d}x; "
+                    f"nuestro polinomio necesita {b:+d}x y término independiente {c}. "
+                    f"Prueba con (x {expected[0]:+d})(x {expected[1]:+d})."
+                )
+            else:
+                answer = (
+                    f"Todavía no: tu par suma {verification['candidate_sum']} y multiplica "
+                    f"{verification['candidate_product']}. Necesitamos sumar {b} y multiplicar {c}. "
+                    f"El par que cumple ambas condiciones es {expected[0]} y {expected[1]}."
                 )
             metadata["answer_guardrail_used"] = True
         else:

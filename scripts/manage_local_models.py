@@ -5,7 +5,7 @@ import argparse
 import shutil
 import subprocess
 
-MODELS=("qwen3:4b","phi4-mini:3.8b")
+MODELS=("qwen3:4b","phi4-mini")
 
 def main():
     parser=argparse.ArgumentParser()

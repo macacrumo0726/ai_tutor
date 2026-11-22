@@ -1,0 +1,49 @@
+{
+  "description": "HTTP chat load test; one isolated user/conversation per request.",
+  "levels": [
+    {
+      "concurrency": 1,
+      "requests": 1,
+      "successful": 1,
+      "failed": 0,
+      "fallbacks": 0,
+      "wall_time_ms": 19779.7,
+      "p50_latency_ms": 19598.6,
+      "p95_latency_ms": 19598.6,
+      "errors": []
+    },
+    {
+      "concurrency": 3,
+      "requests": 3,
+      "successful": 3,
+      "failed": 0,
+      "fallbacks": 1,
+      "wall_time_ms": 22016.6,
+      "p50_latency_ms": 21700.5,
+      "p95_latency_ms": 21700.5,
+      "errors": []
+    },
+    {
+      "concurrency": 5,
+      "requests": 5,
+      "successful": 5,
+      "failed": 0,
+      "fallbacks": 3,
+      "wall_time_ms": 22230.7,
+      "p50_latency_ms": 12647.8,
+      "p95_latency_ms": 21967.4,
+      "errors": []
+    },
+    {
+      "concurrency": 10,
+      "requests": 10,
+      "successful": 10,
+      "failed": 0,
+      "fallbacks": 8,
+      "wall_time_ms": 22827.3,
+      "p50_latency_ms": 12946.2,
+      "p95_latency_ms": 22105.5,
+      "errors": []
+    }
+  ]
+}

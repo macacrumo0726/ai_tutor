@@ -1,0 +1,66 @@
+{
+  "description": "HTTP chat load test; one isolated user/conversation per request.",
+  "levels": [
+    {
+      "concurrency": 1,
+      "requests": 1,
+      "successful": 1,
+      "failed": 0,
+      "fallbacks": 0,
+      "providers": {
+        "gemini": 1
+      },
+      "wall_time_ms": 10450.6,
+      "p50_latency_ms": 10031.6,
+      "p95_latency_ms": 10031.6,
+      "errors": []
+    },
+    {
+      "concurrency": 3,
+      "requests": 3,
+      "successful": 3,
+      "failed": 0,
+      "fallbacks": 0,
+      "providers": {
+        "gemini": 3
+      },
+      "wall_time_ms": 18484.2,
+      "p50_latency_ms": 10729.6,
+      "p95_latency_ms": 10729.6,
+      "errors": []
+    },
+    {
+      "concurrency": 5,
+      "requests": 5,
+      "successful": 5,
+      "failed": 0,
+      "fallbacks": 2,
+      "providers": {
+        "gemini": 5
+      },
+      "wall_time_ms": 21690.8,
+      "p50_latency_ms": 11674.2,
+      "p95_latency_ms": 13367.4,
+      "errors": []
+    },
+    {
+      "concurrency": 10,
+      "requests": 10,
+      "successful": 7,
+      "failed": 3,
+      "fallbacks": 6,
+      "providers": {
+        "error": 3,
+        "gemini": 7
+      },
+      "wall_time_ms": 18138.9,
+      "p50_latency_ms": 7082.0,
+      "p95_latency_ms": 9288.9,
+      "errors": [
+        "HTTP Error 429: Too Many Requests",
+        "HTTP Error 429: Too Many Requests",
+        "HTTP Error 429: Too Many Requests"
+      ]
+    }
+  ]
+}

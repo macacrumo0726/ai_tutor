@@ -132,3 +132,56 @@ def test_domain_choice_proposes_a_concrete_function(tmp_path):
     assert result["metadata"]["intent"] == "choose_for_student"
     assert "f(x) = 1/(x - 4)" in result["answer"]
     assert "-2 o 2" in result["answer"]
+
+
+def test_factorization_exercise_keeps_target_and_checks_attempt(tmp_path):
+    service, identity, conversation = _service(tmp_path)
+    service.ask(identity, conversation.conversation_id, "Quiero repasar factorización algebraica")
+    exercise = service.ask(identity, conversation.conversation_id, "ejercicio")
+    assert "x² + 5x + 6" in exercise["answer"]
+    guided = service.ask(identity, conversation.conversation_id, "paso a paso")
+    assert "producto" in guided["answer"].lower()
+    wrong = service.ask(identity, conversation.conversation_id, "4 y 3")
+    assert "suma" in wrong["answer"].lower()
+    assert wrong["metadata"]["response_verification"]["status"] == "incorrect"
+    factors = service.ask(identity, conversation.conversation_id, "x+2 y x+3")
+    assert "factores" in factors["answer"].lower() or "intento" in factors["answer"].lower()
+
+
+def test_explicit_practice_request_is_not_sent_to_stale_retrieval(tmp_path):
+    service, identity, conversation = _service(tmp_path)
+    service.ask(identity, conversation.conversation_id, "Quiero repasar ecuaciones cuadráticas")
+    result = service.ask(identity, conversation.conversation_id, "Ponme una práctica corta")
+    assert result["metadata"]["intent"] == "exercise_request"
+    assert "ejercicio" in result["answer"].lower() or "factoriza" in result["answer"].lower()
+    assert "matrices" not in result["answer"].lower()
+
+
+def test_declining_optional_root_check_does_not_enter_uncertainty_loop(tmp_path):
+    service, identity, conversation = _service(tmp_path)
+    service.ask(identity, conversation.conversation_id, "Ayúdame a factorizar x² - 5x + 6")
+    result = service.ask(identity, conversation.conversation_id, "no, ya sé que dan 0")
+    assert result["metadata"]["intent"] == "decline_verification"
+    assert "dudando" not in result["answer"].lower()
+    assert "otro ejercicio" in result["answer"].lower()
+
+
+def test_other_exercise_advances_without_retrieval_drift(tmp_path):
+    service, identity, conversation = _service(tmp_path)
+    service.ask(identity, conversation.conversation_id, "Ayúdame a factorizar x² - 5x + 6")
+    result = service.ask(identity, conversation.conversation_id, "otro ejercicio")
+    assert result["metadata"]["intent"] == "exercise_request"
+    assert "factoriza" in result["answer"].lower()
+
+
+def test_current_exercise_is_solved_before_next_exercise_and_coefficients_stay_scoped(tmp_path):
+    service, identity, conversation = _service(tmp_path)
+    service.ask(identity, conversation.conversation_id, "Ayúdame a factorizar x² - 5x + 6")
+    service.ask(identity, conversation.conversation_id, "otro ejercicio")
+    solved = service.ask(identity, conversation.conversation_id, "resuélvelo tú y luego vemos otro ejercicio")
+    assert solved["metadata"]["intent"] == "solve_current_exercise"
+    assert "x² + 5x + 6" in solved["answer"]
+    clarification = service.ask(identity, conversation.conversation_id, "¿por qué habías dicho -5?")
+    assert clarification["metadata"]["intent"] == "clarify_exercise_transition"
+    assert "ejercicio anterior" in clarification["answer"].lower()
+    assert "coeficiente de x es +5" in clarification["answer"]

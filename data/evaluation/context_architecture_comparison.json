@@ -1,0 +1,25 @@
+{
+  "comparison": [
+    {
+      "architecture": "previous_context_handling",
+      "source": "historical regression observation",
+      "scenarios": 28,
+      "turns": 141,
+      "failed_turns": 1,
+      "latency_ms": null
+    },
+    {
+      "architecture": "context_controller_pep_plan_rag_v3",
+      "source": "rerun 2026-11-06",
+      "scenarios": 38,
+      "turns": 191,
+      "failed_turns": 0,
+      "latency_ms": 72772.12
+    }
+  ],
+  "source_informed_validation": {
+    "cases": 10,
+    "failed_cases": 0
+  },
+  "interpretation": "La versión nueva amplía el banco y elimina los fallos observados; la latencia histórica de la versión anterior no se midió con el mismo controlador, por lo que no se presenta como comparación causal."
+}

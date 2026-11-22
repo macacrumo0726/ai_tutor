@@ -22,7 +22,8 @@ class ConversationMemory:
             "messages": messages,
             "retrieval_query": contextualize(message, messages, conversation.active_problem),
             "conversation_context": format_history(
-                conversation.summary, conversation.active_problem, messages, self.recent_messages
+                conversation.summary, conversation.active_problem, messages, self.recent_messages,
+                conversation.pedagogical_state,
             ),
         }
 
@@ -38,9 +39,9 @@ class ConversationMemory:
             values["active_problem"] = active
         messages = self.repository.list_messages(user_id, conversation_id)
         if len(messages) > self.summarize_after:
-            values["summary"] = self._summarize(messages[:-self.recent_messages])
+            values["summary"] = self._summarize(messages[:-self.recent_messages], conversation)
         if metadata:
-            values.update({key: metadata[key] for key in ("retrieval_method", "model_provider", "student_profile") if key in metadata})
+            values.update({key: metadata[key] for key in ("retrieval_method", "model_provider", "student_profile", "pedagogical_state") if key in metadata})
         if values:
             self.repository.update_conversation(user_id, conversation_id, **values)
         return self.repository.get_conversation(user_id, conversation_id, with_messages=True)
@@ -60,9 +61,22 @@ class ConversationMemory:
             history.append((pending, ""))
         return history
 
-    def _summarize(self, messages):
-        # Deterministic extractive summary: no extra API call and no hidden model variance.
+    def _summarize(self, messages, conversation=None):
+        """Create a compact, auditable summary without another LLM call.
+
+        The summary is a control artifact, not a replacement for the transcript:
+        it records the active topic and unresolved pedagogical state, then keeps
+        short excerpts for traceability.
+        """
         snippets = []
+        if conversation is not None:
+            if conversation.active_problem:
+                snippets.append(f"Tema activo: {conversation.active_problem[:240]}")
+            state = conversation.pedagogical_state or {}
+            if state.get("current_activity"):
+                snippets.append(f"Actividad: {state['current_activity']}")
+            if state.get("pending_question"):
+                snippets.append(f"Pregunta pendiente: {state['pending_question'][:240]}")
         for message in messages[-10:]:
             content = re.sub(r"\s+", " ", message.content).strip()
             snippets.append(f"{message.role}: {content[:220]}")
@@ -76,7 +90,7 @@ class ConversationMemory:
     @staticmethod
     def _active_problem(question):
         topic_terms = re.search(
-            r"\b(?:ecuaci[oó]n(?:es)?|funci[oó]n(?:es)?|dominio|rango|factoriz|polinom|trigonom|desigualdad|logarit|exponente|radical|par[aá]bola|sistema lineal|pendiente)\b",
+            r"\b(?:ecuaci[oó]n\w*|funci[oó]n\w*|dominio|rango|factoriz\w*|polinom\w*|trigonom\w*|desigualdad\w*|logarit\w*|exponent\w*|radical\w*|par[aá]bola\w*|sistema lineal|pendiente|matriz\w*|escalar\w*|producto punto|vector\w*|suma|resta|recta\w*|vertical|horizontal)\b",
             question,
             re.IGNORECASE,
         )

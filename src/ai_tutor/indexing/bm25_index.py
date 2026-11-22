@@ -1,8 +1,21 @@
 from __future__ import annotations
-import math,re
+import math,re,unicodedata
 from collections import Counter
 
-def tokenize(text: str) -> list[str]: return re.findall(r"\w+",text.lower(),flags=re.UNICODE)
+_ALIASES = {
+    "factorizar": "factor", "factorizacion": "factor", "factorizaciones": "factor",
+    "factores": "factor", "factorizado": "factor", "factorizada": "factor",
+    "cuadratica": "cuadratica", "cuadraticas": "cuadratica", "cuadratico": "cuadratica",
+    "ecuaciones": "ecuacion", "polinomios": "polinomio", "funciones": "funcion",
+}
+
+
+def tokenize(text: str) -> list[str]:
+    """Tokenize Spanish text consistently for sparse retrieval and query matching."""
+    normalized = unicodedata.normalize("NFKD", text.lower())
+    normalized = "".join(char for char in normalized if not unicodedata.combining(char))
+    tokens = re.findall(r"\w+", normalized, flags=re.UNICODE)
+    return [_ALIASES.get(token, token) for token in tokens]
 
 class BM25Index:
     def __init__(self,texts:list[str],ids:list[str],k1:float=1.5,b:float=.75):
