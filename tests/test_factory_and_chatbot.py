@@ -43,3 +43,23 @@ def test_tutor_separates_student_answer_and_pedagogical_trace():
     text="<student_response>Probemos con x = 2.</student_response><instructional_trace>Activa sustitución.</instructional_trace>"
     answer,trace=split_tutor_output(text)
     assert answer=="Probemos con x = 2." and trace=="Activa sustitución."
+
+def test_tutor_prompt_prioritizes_state_and_bounds_evidence(monkeypatch, baseline):
+    captured = {}
+    class Generator:
+        def generate(self, prompt):
+            captured["prompt"] = prompt
+            from ai_tutor.generation.base import GenerationResult
+            return GenerationResult("respuesta contextual", "test", "base", 1)
+    monkeypatch.setattr("ai_tutor.tutoring.tutor.load_retriever", lambda method: baseline)
+    from ai_tutor.tutoring.tutor import Tutor
+    tutor = Tutor(generator=Generator())
+    tutor.ask("no, dime tú", retrieval_method="rag", conversation_context="último turno",
+              retrieval_query="Tema activo: exponentes", pedagogical_state={
+                  "topic": "exponentes enteros", "current_activity": "topic_introduction",
+                  "pending_question": "¿Qué parte quieres practicar?", "next_action": "recommend_starting_point"
+              }, intent="choose_for_student")
+    assert "<conversation_state>" in captured["prompt"]
+    assert "exponentes enteros" in captured["prompt"]
+    assert "Intención detectada: choose_for_student" in captured["prompt"]
+    assert captured["prompt"].count("[Evidencia ") <= 3

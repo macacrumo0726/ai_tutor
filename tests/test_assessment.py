@@ -44,3 +44,28 @@ def test_keyword_fallback_supports_partial_score():
     check=build_micro_check("custom_concept","Transformación algebraica")
     result=evaluate(check,"La transformación aplica una operación algebraica")
     assert 0 < result.score <= 1
+
+
+def test_matrix_numeric_micro_check_is_verified_against_latest_tutor_question():
+    from ai_tutor.assessment.response_verifier import verify_short_math_response
+
+    tutor_question = (
+        "Si tuviéramos una matriz con el número 4 en la esquina superior izquierda "
+        "y otra con el número 3 en esa misma posición, ¿qué número iría en esa esquina del resultado?"
+    )
+    result = verify_short_math_response("7", tutor_question)
+    assert result["kind"] == "numeric_addition_v1"
+    assert result["status"] == "correct"
+    assert result["expected_value"] == 7
+
+
+def test_function_rule_yes_no_answer_is_verified_from_previous_question():
+    from ai_tutor.assessment.response_verifier import verify_short_math_response
+
+    tutor_question = (
+        "Si al poner una entrada obtienes dos valores diferentes de salida, "
+        "¿crees que esa ecuación cumpliría la regla para ser una función?"
+    )
+    result = verify_short_math_response("no", tutor_question)
+    assert result["kind"] == "binary_function_rule_v1"
+    assert result["status"] == "correct"

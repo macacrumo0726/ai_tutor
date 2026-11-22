@@ -30,6 +30,17 @@ def test_roles_are_allowlisted_and_admin_guard_is_enforced(services):
         auth.require(student, "admin")
 
 
+def test_admin_study_listing_keeps_named_research_and_demo_profiles(services):
+    repository, auth, _ = services
+    auth.register("investigador_demo", "Investigador", "1234")
+    auth.register("estudiante_demo_algebra", "Estudiante", "1234")
+    auth.register("load_abc123", "Carga", "1234")
+    visible = {item["user_id"] for item in repository.list_study_users()}
+    assert "investigador_demo" in visible
+    assert "estudiante_demo_algebra" in visible
+    assert "load_abc123" not in visible
+
+
 def test_explicit_feedback_updates_mastery_and_preserves_evidence(services):
     repository, auth, learning = services
     auth.register("student", "Student", "1234")

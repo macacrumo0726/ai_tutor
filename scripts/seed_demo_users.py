@@ -52,6 +52,7 @@ def main():
         user = repository.get_user(demo["user_id"])
         if not user or not user.get("password_hash"):
             auth.register(demo["user_id"], demo["display_name"], demo["pin"])
+        repository.mark_demo_user(demo["user_id"], True)
         conversations = repository.list_conversations(demo["user_id"])
         if not conversations:
             conversation = memory.create(demo["user_id"], retrieval_method="pep_plan_rag",

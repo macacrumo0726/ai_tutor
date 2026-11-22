@@ -1,0 +1,76 @@
+{
+  "case_count": 10,
+  "failed_cases": 0,
+  "rows": [
+    {
+      "topic": "domain",
+      "question": "Halla el dominio de (x+1)/(x-2)",
+      "answer": "Para el dominio excluimos los valores que hacen cero el denominador. En este ejercicio se excluye 2; los demás números reales sí están permitidos. En intervalos, se escriben intervalos abiertos en esos puntos.",
+      "missing": [],
+      "provider": "instructional"
+    },
+    {
+      "topic": "domain",
+      "question": "¿se incluye el 2?",
+      "answer": "Para el dominio excluimos los valores que hacen cero el denominador. En este ejercicio se excluye 2; los demás números reales sí están permitidos. En intervalos, se escriben intervalos abiertos en esos puntos.",
+      "missing": [],
+      "provider": "instructional"
+    },
+    {
+      "topic": "radical",
+      "question": "Simplifica √(x²)",
+      "answer": "√(x²) no siempre es x: es |x|. Si x ≥ 0, |x| = x; si x < 0, |x| = -x. La raíz cuadrada principal siempre es no negativa.",
+      "missing": [],
+      "provider": "instructional"
+    },
+    {
+      "topic": "logarithm",
+      "question": "¿Qué condición debe cumplir el argumento de log(x+3)?",
+      "answer": "El argumento de un logaritmo debe ser positivo. En log(x + 3), exigimos x + 3 > 0; al restar 3 queda x > -3. Por eso el dominio es (-3, ∞).",
+      "missing": [],
+      "provider": "instructional"
+    },
+    {
+      "topic": "inequality",
+      "question": "Resuelve -3x ≤ 12",
+      "answer": "Dividimos ambos lados entre -3 y, como es negativo, invertimos la desigualdad: x ≥ -4. Puedes comprobarlo con x = 0: 0 ≤ 12.",
+      "missing": [],
+      "provider": "instructional"
+    },
+    {
+      "topic": "composition",
+      "question": "Si f(x)=2x+1 y g(x)=x², calcula f(g(2))",
+      "answer": "Primero calculamos g(2) = 2² = 4. Después usamos ese resultado como entrada de f: f(4) = 2(4) + 1 = 9. Por tanto, f(g(2)) = 9.",
+      "missing": [],
+      "provider": "instructional"
+    },
+    {
+      "topic": "inverse",
+      "question": "¿Cuándo una función tiene inversa?",
+      "answer": "Una función puede tener inversa cuando es uno a uno: entradas distintas no producen la misma salida. Puedes comprobarlo con la prueba de la recta horizontal; si una horizontal corta la gráfica más de una vez, no es uno a uno.",
+      "missing": [],
+      "provider": "instructional"
+    },
+    {
+      "topic": "exponents",
+      "question": "Simplifica x³·x²",
+      "answer": "Al multiplicar potencias con la misma base se suman los exponentes: x³·x² = x⁵. Esto no aplica a una suma como x³ + x², que no se combina de esa forma.",
+      "missing": [],
+      "provider": "instructional"
+    },
+    {
+      "topic": "trigonometry",
+      "question": "¿Cuánto vale sen(30°)?",
+      "answer": "En grados, sen(30°) = 1/2. Si el ángulo está en radianes, hay que indicar la unidad: 30 rad no equivale a 30°. Comprueba si la calculadora está en DEG o RAD.",
+      "missing": [],
+      "provider": "instructional"
+    },
+    {
+      "topic": "quadratic",
+      "question": "Factoriza x²+5x+6",
+      "answer": "Buscamos dos números que sumen 5 y cuyo producto sea 6. Son 2 y 3, así que x² + 5x + 6 = (x + 2)(x + 3). Al multiplicar, recuperamos el polinomio original. ¿Quieres que comprobemos las raíces x = -2 y x = -3 sustituyéndolas?",
+      "missing": [],
+      "provider": "instructional"
+    }
+  ]
+}

@@ -22,18 +22,22 @@ retrieval:
   dense_weight: 1.0
   sparse_weight: 1.0
 generation:
-  provider: gemini
-  model: gemini-3.6-flash
+  provider: openai
+  model: gpt-4.1-mini
   temperature: 0.0
-  request_timeout_ms: 30000
-  gemini_fallback_model: gemini-3.5-flash-lite
+  request_timeout_ms: 12000
+  fallback_providers:
+    - deepseek
+    - openai
+    - instructional
   default_models:
     openai: gpt-4.1-mini
     gemini: gemini-3.6-flash
     deepseek: deepseek-chat
     local_base: qwen3:8b
     local_qwen3_4b: qwen3:4b
-    local_phi4_mini: phi4-mini:3.8b
+    local_qwen3_1_7b: qwen3:1.7b
+    local_phi4_mini: phi4-mini
     local_finetuned: precalculus-tutor-qwen3:8b
     local_deepseek_base: deepseek-r1:7b
     local_deepseek_finetuned: precalculus-tutor-deepseek-r1:7b

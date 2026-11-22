@@ -1,7 +1,10 @@
 from fastapi.testclient import TestClient
 
 from ai_tutor.api.app import create_app
-from ai_tutor.api.services import TutorApplicationService, _open_question, _social_intent, _student_text
+from ai_tutor.api.services import (
+    TutorApplicationService, _open_question, _response_is_relevant, _response_is_spanish,
+    _response_has_prompt_leak, _response_passes_guardrails, _social_intent, _student_text,
+)
 from ai_tutor.memory import ConversationRepository
 
 
@@ -30,6 +33,13 @@ def _register(client, user_id="student", display_name="Student", pin="1234", acc
         })
         assert accepted.status_code == 200
     return session
+
+
+def test_response_guardrails_accept_spanish_math_and_reject_leaks_or_wrong_language():
+    assert _response_is_spanish("Buscamos dos números que sumen -5 y cuyo producto sea 6.")
+    assert _response_passes_guardrails("factoriza x² - 5x + 6", "x² - 5x + 6 = (x - 3)(x - 2)")[0]
+    assert _response_has_prompt_leak("<think>internal reasoning</think>")
+    assert not _response_passes_guardrails("factoriza x² - 5x + 6", "The answer is (x - 3)(x - 2), because...")[0]
 
 
 def test_student_flow_is_authenticated_and_isolated(tmp_path, monkeypatch):
@@ -99,6 +109,18 @@ def test_avatar_roundtrip(tmp_path, monkeypatch):
     assert client.get("/api/me/avatar", headers=headers).json()["hair"] == "curls"
 
 
+def test_learning_path_endpoint_returns_adaptive_route(tmp_path, monkeypatch):
+    client, _ = _client(tmp_path, monkeypatch)
+    session = _register(client)
+    headers = {"Authorization": f"Bearer {session['token']}"}
+    response = client.get("/api/me/learning-path", headers=headers)
+    assert response.status_code == 200
+    payload = response.json()
+    assert "items" in payload
+    assert "mastery_threshold" in payload
+    assert isinstance(payload["items"], list)
+
+
 def test_stream_returns_sse_events(tmp_path, monkeypatch):
     client, _ = _client(tmp_path, monkeypatch)
     session = _register(client)
@@ -151,6 +173,29 @@ def test_admin_routes_require_admin(tmp_path, monkeypatch):
     admin_headers = {"Authorization": f"Bearer {administrator['token']}"}
     assert client.get("/api/admin/overview", headers=student_headers).status_code == 403
     assert client.get("/api/admin/overview", headers=admin_headers).status_code == 200
+
+
+def test_admin_study_panel_excludes_seed_demo_accounts_and_reports_filtered_models(tmp_path, monkeypatch):
+    monkeypatch.setenv("AI_TUTOR_ADMIN_IDS", "admin_user")
+    client, service = _client(tmp_path, monkeypatch)
+    student = _register(client, "participant_1", "Participant")
+    demo = _register(client, "test_demo", "Seed demo")
+    service.repository.mark_demo_user("test_demo", True)
+    administrator = _register(client, "admin_user", "Administrator")
+    first = service.memory.create("participant_1", model_provider="gemini", retrieval_method="pep_plan_rag")
+    service.memory.record_turn("participant_1", first.conversation_id, "pregunta", "respuesta",
+                               {"model_provider": "gemini", "retrieval_method": "pep_plan_rag"})
+    second = service.memory.create("participant_1", model_provider="instructional", retrieval_method="rag")
+    service.memory.record_turn("participant_1", second.conversation_id, "otra", "respuesta",
+                               {"model_provider": "instructional", "retrieval_method": "rag"})
+    headers = {"Authorization": f"Bearer {administrator['token']}"}
+    users = client.get("/api/admin/users", headers=headers).json()
+    assert {item["user_id"] for item in users} == {"participant_1", "admin_user"}
+    overview = client.get("/api/admin/overview?user_id=participant_1", headers=headers).json()
+    assert set(overview["providers"]) == {"gemini", "instructional"}
+    filtered = client.get("/api/admin/overview?user_id=participant_1&model_provider=gemini", headers=headers).json()
+    assert filtered["provider"] == "gemini"
+    assert filtered["retrieval_method"] == "pep_plan_rag"
 
 
 def test_admin_can_review_persisted_conversation_messages(tmp_path, monkeypatch):
@@ -217,6 +262,11 @@ def test_student_text_removes_model_formatting_delimiters():
     )
 
 
+def test_response_guard_rejects_unrelated_retrieval_answer():
+    assert _response_is_relevant("Ayúdame a factorizar x² - 5x + 6", "Veamos la función cosecante.") is False
+    assert _response_is_relevant("Ayúdame a factorizar x² - 5x + 6", "Buscamos dos factores que sumen -5 y multipliquen 6.") is True
+
+
 def test_wrong_verified_answer_updates_profile_as_incorrect(tmp_path, monkeypatch):
     repository = ConversationRepository(tmp_path / "verified.sqlite3")
     service = TutorApplicationService(repository=repository)
@@ -247,3 +297,22 @@ def test_wrong_verified_answer_updates_profile_as_incorrect(tmp_path, monkeypatc
     mastery = next(item for item in report["mastery"] if item["concept_id"] == "1_4_dominio_de_una_expresion_algebraica")
     assert mastery["mastery"] < 0.5
     assert report["understanding_evaluations"][0]["classification"] == "not_understood"
+
+
+def test_all_provider_failures_return_local_emergency_answer(tmp_path, monkeypatch):
+    repository = ConversationRepository(tmp_path / "emergency.sqlite3")
+    service = TutorApplicationService(repository=repository)
+    identity = service.auth.register("student", "Student", "1234")
+    conversation = service.memory.create("student", title="Factorización")
+
+    def failing_tutor(_provider):
+        raise RuntimeError("simulated provider outage")
+
+    monkeypatch.setattr(service, "tutor", failing_tutor)
+    result = service.ask(identity, conversation.conversation_id, "Ayúdame a factorizar x² - 5x + 6")
+
+    assert result["answer"]
+    assert result["metadata"]["model_provider"] == "instructional_emergency"
+    assert result["metadata"]["fallback_used"] is True
+    messages = repository.list_messages("student", conversation.conversation_id)
+    assert messages[-1].role == "assistant"

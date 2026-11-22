@@ -1,0 +1,73 @@
+{
+  "experiment": {
+    "experiment_id": "llm-architectures-pep-v3-v1",
+    "git_commit": "7295f2ba9dbdc08370a24d881599c5a6431ebbe0",
+    "split": "validation",
+    "dataset_version": "1.0.0-corpus-draft",
+    "embedding_model": "hashing-vectorizer-v1",
+    "retrieval_method": "pep_plan_rag",
+    "top_k": 5
+  },
+  "architectures": {
+    "gpt_primary": {
+      "requests": 3,
+      "successful": 3,
+      "failed": 0,
+      "fallbacks": 0,
+      "providers": [
+        "openai"
+      ],
+      "mean_latency_ms": 4972.49,
+      "mean_generation_latency_ms": 4611.02,
+      "mean_token_f1": 0.2272,
+      "retrieval_hit": 1.0,
+      "concept_recall": 1.0,
+      "prerequisite_recall": 1.0
+    },
+    "gemini_primary": {
+      "requests": 3,
+      "successful": 3,
+      "failed": 0,
+      "fallbacks": 3,
+      "providers": [
+        "instructional"
+      ],
+      "mean_latency_ms": 315.67,
+      "mean_generation_latency_ms": 1.8,
+      "mean_token_f1": 0.4659,
+      "retrieval_hit": 1.0,
+      "concept_recall": 1.0,
+      "prerequisite_recall": 1.0
+    },
+    "qwen_primary_gemini_fallback": {
+      "requests": 3,
+      "successful": 3,
+      "failed": 0,
+      "fallbacks": 0,
+      "providers": [
+        "local_qwen3_1_7b"
+      ],
+      "mean_latency_ms": 20497.2,
+      "mean_generation_latency_ms": 20042.49,
+      "mean_token_f1": 0.2248,
+      "retrieval_hit": 1.0,
+      "concept_recall": 1.0,
+      "prerequisite_recall": 1.0
+    },
+    "deepseek_primary_gemini_fallback": {
+      "requests": 3,
+      "successful": 3,
+      "failed": 0,
+      "fallbacks": 0,
+      "providers": [
+        "deepseek"
+      ],
+      "mean_latency_ms": 5095.55,
+      "mean_generation_latency_ms": 4625.28,
+      "mean_token_f1": 0.2229,
+      "retrieval_hit": 1.0,
+      "concept_recall": 1.0,
+      "prerequisite_recall": 1.0
+    }
+  }
+}

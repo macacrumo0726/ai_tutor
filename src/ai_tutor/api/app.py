@@ -68,6 +68,11 @@ def create_app(service: Optional[TutorApplicationService] = None) -> FastAPI:
     # throughout the ASGI lifespan.
     app.state.service = service or TutorApplicationService()
     app.state.auth_limiter = _WindowLimiter(limit=int(os.getenv("AI_TUTOR_AUTH_RATE_LIMIT", "20")))
+    # Ollama and free remote tiers degrade sharply under concurrent requests.
+    # Queue generation instead of returning an overload error to students.
+    app.state.generation_semaphore = asyncio.Semaphore(
+        max(1, int(os.getenv("AI_TUTOR_MAX_CONCURRENT_GENERATIONS", "2")))
+    )
     origins = [item.strip() for item in os.getenv("AI_TUTOR_CORS_ORIGINS", "http://localhost:3000").split(",") if item.strip()]
     if not origins or "*" in origins:
         raise RuntimeError("AI_TUTOR_CORS_ORIGINS debe contener orígenes explícitos; no se permite '*'")
@@ -176,6 +181,10 @@ def create_app(service: Optional[TutorApplicationService] = None) -> FastAPI:
     def progress(request: Request, identity=Depends(protocol_user)):
         return request.app.state.service.repository.learning_report(identity["user_id"])
 
+    @app.get("/api/me/learning-path")
+    def learning_path(request: Request, identity=Depends(protocol_user)):
+        return request.app.state.service.learning_path(identity["user_id"])
+
     @app.get("/api/conversations")
     def conversations(request: Request, identity=Depends(protocol_user)):
         service = request.app.state.service
@@ -228,7 +237,24 @@ def create_app(service: Optional[TutorApplicationService] = None) -> FastAPI:
         async def generate():
             yield _event("status", {"stage": "thinking", "message": "Estoy preparando una explicación para ti…"})
             try:
-                result = await asyncio.to_thread(service.ask, identity, conversation_id, payload.message)
+                acquired = False
+                try:
+                    await asyncio.wait_for(
+                        request.app.state.generation_semaphore.acquire(),
+                        timeout=float(os.getenv("AI_TUTOR_QUEUE_TIMEOUT_SECONDS", "12")),
+                    )
+                    acquired = True
+                    result = await asyncio.to_thread(service.ask, identity, conversation_id, payload.message)
+                except asyncio.TimeoutError:
+                    # Do not leave the browser waiting behind a saturated
+                    # local model. The emergency answer is persisted and is
+                    # indistinguishable from a normal assistant turn.
+                    result = await asyncio.to_thread(
+                        service.emergency_answer, identity, conversation_id, payload.message, "generation_queue_saturated"
+                    )
+                finally:
+                    if acquired:
+                        request.app.state.generation_semaphore.release()
                 words = result["answer"].split(" ")
                 for index in range(0, len(words), 5):
                     yield _event("token", {"text": " ".join(words[index:index + 5]) + " "})
@@ -245,20 +271,52 @@ def create_app(service: Optional[TutorApplicationService] = None) -> FastAPI:
         )
 
     @app.get("/api/admin/overview")
-    def admin_overview(request: Request, identity=Depends(admin)):
+    def admin_overview(request: Request, user_id: Optional[str] = None,
+                       model_provider: Optional[str] = None,
+                       retrieval_method: Optional[str] = None,
+                       identity=Depends(admin)):
         service = request.app.state.service
-        users = service.repository.list_users()
+        users = service.repository.list_study_users()
+        if user_id:
+            users = [item for item in users if item["user_id"] == service.repository.normalize_user_id(user_id)]
+        conversation_records = []
+        for user in users:
+            for conversation in service.repository.list_conversations(user["user_id"], include_archived=True):
+                providers = {conversation.model_provider} if conversation.model_provider else set()
+                retrievals = {conversation.retrieval_method} if conversation.retrieval_method else set()
+                # A fallback can change provider within one conversation. Read
+                # message metadata so the dashboard reflects every model that
+                # actually answered the participant, not only the last one.
+                for message in service.repository.list_messages(user["user_id"], conversation.conversation_id):
+                    if message.metadata.get("model_provider"):
+                        providers.add(message.metadata["model_provider"])
+                    if message.metadata.get("retrieval_method"):
+                        retrievals.add(message.metadata["retrieval_method"])
+                conversation_records.append((conversation, providers, retrievals))
+        if model_provider:
+            conversation_records = [item for item in conversation_records if model_provider in item[1]]
+        if retrieval_method:
+            conversation_records = [item for item in conversation_records if retrieval_method in item[2]]
+        providers = sorted({provider for _, values, _ in conversation_records
+                            for provider in values
+                            if provider and provider not in {"none", "conversation_router"}})
+        retrievals = sorted({method for _, _, values in conversation_records
+                             for method in values
+                             if method and method != "none"})
         return {
             "users": len(users),
-            "provider": service.default_provider,
-            "retrieval_method": service.default_retrieval,
-            "pep_version": "v3" if service.default_retrieval == "pep_plan_rag" else "not_v3",
+            "provider": " · ".join(providers) if providers else service.default_provider,
+            "retrieval_method": " · ".join(retrievals) if retrievals else service.default_retrieval,
+            "providers": providers,
+            "retrieval_methods": retrievals,
+            "pep_version": "v3" if any(item == "pep_plan_rag" for item in retrievals) or (not retrievals and service.default_retrieval == "pep_plan_rag") else "not_v3",
             "fallback_enabled": service.allow_fallback,
+            "filters": {"user_id": user_id, "model_provider": model_provider, "retrieval_method": retrieval_method},
         }
 
     @app.get("/api/admin/users")
     def admin_users(request: Request, identity=Depends(admin)):
-        return request.app.state.service.repository.list_users()
+        return request.app.state.service.repository.list_study_users()
 
     @app.get("/api/admin/users/{user_id}")
     def admin_user(user_id: str, request: Request, identity=Depends(admin)):
@@ -266,6 +324,9 @@ def create_app(service: Optional[TutorApplicationService] = None) -> FastAPI:
         user = service.repository.get_user(user_id)
         if not user:
             raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        study_ids = {item["user_id"] for item in service.repository.list_study_users()}
+        if user["user_id"] not in study_ids:
+            raise HTTPException(status_code=404, detail="Perfil de participante no encontrado")
         conversations = service.repository.list_conversations(user_id, include_archived=True)
         return {
             "user": {key: value for key, value in user.items() if key not in {"password_hash", "password_salt"}},

@@ -4,6 +4,7 @@ from time import perf_counter
 from ai_tutor.graph.spreading_activation import spread_activation
 from ai_tutor.planning import analyze_query, build_learning_path, optimize_context
 from ai_tutor.student_model import get_student_profile
+from ai_tutor.indexing.bm25_index import tokenize
 from .base import RetrievalResult, RetrievedChunk
 from .graph_rag import GraphRAGRetriever
 
@@ -27,12 +28,28 @@ class PEPPlanRAGRetriever:
         maximum = max(values.values(), default=0.0)
         return {key: (value / maximum if maximum > 0 else 0.0) for key, value in values.items()}
 
+    def _query_concepts(self, query: str) -> list[str]:
+        """Recover concept seeds from the query even when the dense index collides.
+
+        The corpus is OCR-derived and the compact hashing encoder can collide on
+        short Spanish queries. Matching normalized concept labels provides a
+        deterministic semantic floor before graph expansion.
+        """
+        query_terms = set(tokenize(query))
+        matches = []
+        for concept_id, label in self.concept_labels.items():
+            label_terms = set(tokenize(label.replace("_", " ")))
+            if query_terms & {term for term in label_terms if len(term) >= 4}:
+                matches.append(concept_id)
+        return matches
+
     def retrieve(self, query: str, top_k: int = 5, **kwargs) -> RetrievalResult:
         started = perf_counter()
         pool_k = max(top_k * self.config.get("candidate_pool_multiplier", 3), 10)
         direct = self.baseline.retrieve(query, pool_k)
         graph_result = self.graph_retriever.retrieve(query, pool_k)
-        targets = list(dict.fromkeys(direct.concepts))[:self.config.get("max_target_concepts", 5)]
+        lexical_targets = self._query_concepts(query)
+        targets = list(dict.fromkeys(lexical_targets + list(direct.concepts)))[:self.config.get("max_target_concepts", 5)]
         student = get_student_profile(kwargs.get("student_state", kwargs.get("student_profile", "unknown")))
 
         planning_started = perf_counter()

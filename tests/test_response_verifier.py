@@ -1,4 +1,4 @@
-from ai_tutor.assessment import verify_short_math_response
+from ai_tutor.assessment import verify_short_math_response, verify_factorization_attempt
 
 
 def test_linear_denominator_rejects_wrong_short_answer():
@@ -36,3 +36,25 @@ def test_symbolic_common_factor_micro_check_rejects_wrong_variable():
     result = verify_short_math_response("x", prompt)
     assert result["status"] == "incorrect"
     assert result["expected_symbol"] == "y"
+
+
+def test_factorization_attempt_tracks_pair_not_previous_attempt():
+    prompt = "Practiquemos: factoriza x² - 7x + 12. Busca dos números cuyo producto sea 12 y cuya suma sea -7."
+    wrong = verify_factorization_attempt("4 y 3", prompt)
+    assert wrong["status"] == "incorrect"
+    assert wrong["student_pair"] == (4, 3)
+    assert wrong["expected_pair"] == (-4, -3)
+
+
+def test_factorization_attempt_understands_factor_expression():
+    prompt = "Factoriza x² - 7x + 12 y escribe los dos factores."
+    result = verify_factorization_attempt("x+4 y x+3", prompt)
+    assert result["status"] == "correct"
+    assert result["kind"] == "quadratic_factor_expression_v2"
+
+
+def test_factorization_attempt_rejects_wrong_sign_expression():
+    prompt = "Factoriza x² - 7x + 12 y escribe los dos factores."
+    result = verify_factorization_attempt("(x-3)(x-4)", prompt)
+    assert result["status"] == "incorrect"
+    assert "+7x" in result["explanation"]
